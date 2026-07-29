@@ -1,0 +1,37 @@
+name: Infra
+
+# Manual only. The infra stack has its own lifecycle: deploying the app does not
+# touch it, and running this does not restart the app. Run it once before the
+# first app deploy (it creates app_network, which the app stack joins), and
+# afterwards only to change the Postgres image or its settings.
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy infra
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Run Playbook
+        uses: dawidd6/action-ansible-playbook@v9
+        with:
+          directory: deploy
+          playbook: infra.yaml
+          configuration: |
+            [defaults]
+            inventory = inventory.yaml
+            host_key_checking = False
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          inventory: |
+            [app]
+            YOUR.SERVER.IP ansible_user=root
+          options: |
+            -e "postgres_password=${{ secrets.POSTGRES_PASSWORD }}"
+            -e "s3_endpoint=${{ secrets.S3_ENDPOINT }}"
+            -e "s3_region=${{ secrets.S3_REGION }}"
+            -e "s3_bucket_backups=${{ secrets.S3_BUCKET_BACKUPS }}"
+            -e "s3_backup_access_key_id=${{ secrets.S3_BACKUP_ACCESS_KEY_ID }}"
+            -e "s3_backup_secret_access_key=${{ secrets.S3_BACKUP_SECRET_ACCESS_KEY }}"

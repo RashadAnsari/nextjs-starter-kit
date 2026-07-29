@@ -1,0 +1,69 @@
+# Infra stack: the stateful services the app talks to. Deployed by
+# deploy/infra.yaml, independently of the app, so redeploying the app never
+# restarts Postgres. This stack owns app_network; the app stack joins it as an
+# external network.
+services:
+  postgres:
+    image: postgres:18-alpine
+    hostname: postgres
+    container_name: app_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: "app"
+      POSTGRES_USER: "app"
+      POSTGRES_PASSWORD: "{{ postgres_password }}"
+    # Postgres 18 moved the recommended mount point up one level: the data now
+    # lives in a major-version subdirectory of /var/lib/postgresql, and mounting
+    # the old .../data path makes the container refuse to start.
+    volumes:
+      - app_postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d app"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app_network
+
+  # Same image as the server so pg_dump matches its major version. Uses its own
+  # storage credentials, scoped to the backups bucket, so a compromised app
+  # container cannot reach a dump of the whole database.
+  db-backup:
+    image: postgres:18-alpine
+    hostname: db-backup
+    container_name: app_db_backup
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      POSTGRES_HOST: "postgres"
+      POSTGRES_DB: "app"
+      POSTGRES_USER: "app"
+      POSTGRES_PASSWORD: "{{ postgres_password }}"
+      AWS_ACCESS_KEY_ID: "{{ s3_backup_access_key_id }}"
+      AWS_SECRET_ACCESS_KEY: "{{ s3_backup_secret_access_key }}"
+      AWS_DEFAULT_REGION: "{{ s3_region }}"
+      S3_ENDPOINT: "{{ s3_endpoint }}"
+      S3_BUCKET_BACKUPS: "{{ s3_bucket_backups }}"
+      BACKUP_INTERVAL_HOURS: "24"
+    volumes:
+      - /etc/app/backup.sh:/backup.sh:ro
+    entrypoint: ["/bin/sh", "/backup.sh"]
+    healthcheck:
+      test: ["CMD", "/bin/sh", "/backup.sh", "healthcheck"]
+      interval: 1h
+      timeout: 10s
+      retries: 2
+      start_period: 5m
+    networks:
+      - app_network
+
+volumes:
+  app_postgres_data:
+    name: app_postgres_data
+
+networks:
+  app_network:
+    driver: bridge
+    name: app_network

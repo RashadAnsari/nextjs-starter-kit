@@ -1,0 +1,6 @@
+.next/
+node_modules/
+bun.lock
+.claude/
+.cursor/
+.mcp.json

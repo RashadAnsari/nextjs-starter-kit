@@ -1,0 +1,54 @@
+- name: Deploy app stack
+  become: true
+  hosts: all
+  tasks:
+    - name: Create configuration directory
+      file:
+        path: /etc/app
+        state: directory
+
+    - name: Copy docker image to host
+      copy:
+        src: "{{ docker_image_path }}"
+        dest: /etc/app/docker-image.tar
+
+    - name: Load docker image from .tar file
+      shell: |
+        docker load < /etc/app/docker-image.tar
+
+    - name: Delete docker image .tar file
+      file:
+        path: /etc/app/docker-image.tar
+        state: absent
+
+    # The app stack joins app_network as an external network, so the infra
+    # playbook must have run at least once on this host first.
+    - name: Check the infra network exists
+      shell: |
+        docker network inspect app_network
+      register: infra_network
+      changed_when: false
+      failed_when: infra_network.rc != 0
+
+    - name: Copy app compose file
+      template:
+        src: tmpls/app-compose.yml.j2
+        dest: /etc/app/app-compose.yml
+
+    - name: docker-compose up -d
+      shell: |
+        docker compose -f /etc/app/app-compose.yml up -d
+
+    # Migrations belong to the app version being deployed, not to the database
+    # stack. Retried so a database that is still starting does not fail deploy.
+    - name: Apply database migrations
+      shell: |
+        docker compose -f /etc/app/app-compose.yml exec -T app bun scripts/migrate.ts
+      register: migrate
+      until: migrate.rc == 0
+      retries: 10
+      delay: 3
+
+    - name: Remove unused docker images
+      shell: |
+        docker image prune -a -f

@@ -1,0 +1,7 @@
+.git
+.github
+.claude
+.next
+node_modules
+deploy
+.env*

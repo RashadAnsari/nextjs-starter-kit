@@ -1,0 +1,20 @@
+# Local development database only. The production stack lives in deploy/.
+services:
+  postgres:
+    image: postgres:18-alpine
+    hostname: postgres
+    container_name: postgres
+    environment:
+      POSTGRES_DB: app
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: "secret"
+    ports:
+      - "5432:5432"
+    # Postgres 18 moved the recommended mount point up one level: the data now
+    # lives in a major-version subdirectory of /var/lib/postgresql, and mounting
+    # the old .../data path makes the container refuse to start.
+    volumes:
+      - app_postgres_data:/var/lib/postgresql
+
+volumes:
+  app_postgres_data:

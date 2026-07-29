@@ -1,0 +1,32 @@
+- name: Deploy infra stack
+  become: true
+  hosts: all
+  tasks:
+    - name: Create configuration directory
+      file:
+        path: /etc/app
+        state: directory
+
+    - name: Copy backup script
+      copy:
+        src: files/backup.sh
+        dest: /etc/app/backup.sh
+        mode: "0755"
+
+    - name: Copy infra compose file
+      template:
+        src: tmpls/infra-compose.yml.j2
+        dest: /etc/app/infra-compose.yml
+
+    - name: docker-compose up -d
+      shell: |
+        docker compose -f /etc/app/infra-compose.yml up -d
+
+    - name: Wait for Postgres to accept connections
+      shell: |
+        docker compose -f /etc/app/infra-compose.yml exec -T postgres pg_isready -U app -d app
+      register: pg_ready
+      until: pg_ready.rc == 0
+      retries: 20
+      delay: 3
+      changed_when: false
