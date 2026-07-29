@@ -2,17 +2,41 @@ import { ImageResponse } from "next/og";
 import { site } from "@/config/site";
 
 /**
- * The browser tab icon, generated from the site config so it rebrands with
- * everything else. Next.js picks this file up by name and emits the <link>
- * tag itself.
+ * Every raster icon the app needs, generated from the site config so they
+ * rebrand along with everything else. Next.js picks this file up by name and
+ * emits the <link rel="icon"> tags itself.
  *
- * Replace it with a real favicon when you have one: delete this file and put an
- * `icon.png` (or `favicon.ico` in the app directory) in its place.
+ * The 192 and 512 sizes exist for the web manifest, which is what a browser
+ * uses when someone installs the app to their home screen. src/app/manifest.ts
+ * references them by the stable paths listed in ICONS below.
+ *
+ * Replace all of this with real artwork when you have it: delete the file and
+ * drop an `icon.png` in its place, then point the manifest at your own assets.
  */
-export const size = { width: 32, height: 32 };
 export const contentType = "image/png";
 
-export default function Icon() {
+const ICONS = [
+  { id: "32", size: 32 },
+  { id: "192", size: 192 },
+  { id: "512", size: 512 },
+];
+
+export function generateImageMetadata() {
+  return ICONS.map(({ id, size }) => ({
+    id,
+    contentType,
+    size: { width: size, height: size },
+  }));
+}
+
+// `id` arrives as a Promise in Next.js 16 and must be awaited. Destructuring it
+// as a plain string silently yields a Promise object, every lookup misses, and
+// all sizes render as the first entry, which is easy to miss because the <link>
+// tags still advertise the correct dimensions.
+export default async function Icon({ id }: { id: Promise<string | number> }) {
+  const iconId = String(await id);
+  const { size } = ICONS.find((icon) => icon.id === iconId) ?? ICONS[0];
+
   return new ImageResponse(
     <div
       style={{
@@ -23,13 +47,13 @@ export default function Icon() {
         justifyContent: "center",
         background: site.brandColor,
         color: "white",
-        fontSize: 20,
+        // Scales with the icon so the letter fills the tile at every size.
+        fontSize: Math.round(size * 0.6),
         fontWeight: 700,
-        borderRadius: 6,
       }}
     >
       {site.name.charAt(0).toUpperCase()}
     </div>,
-    size
+    { width: size, height: size }
   );
 }

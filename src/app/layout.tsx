@@ -28,6 +28,11 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
   },
+  // The label shown under the icon when the site is added to an iOS home
+  // screen. Without it Safari uses the full <title>, which is usually too long.
+  appleWebApp: {
+    title: site.name,
+  },
   robots: {
     index: true,
     follow: true,
