@@ -70,8 +70,20 @@ const nextConfig: NextConfig = {
   generateBuildId: async () => process.env.GIT_SHA ?? "development",
   // Keep native addons out of the webpack bundle so Node can require them at runtime.
   serverExternalPackages: ["pg"],
-  // Vars that must reach the client bundle. Next.js inlines these at build time,
-  // so anything listed here is public: never add a secret.
+  // Vars that must reach the client bundle. Next.js substitutes these at build
+  // time, which has two consequences worth knowing before adding one.
+  //
+  // They become public: the value is written into JavaScript the browser
+  // downloads, so never list a secret here.
+  //
+  // They stop being runtime configuration: once a var is listed, its value is
+  // frozen into the image, and setting it in the environment of a running
+  // container does nothing. It has to be a Dockerfile build argument too, which
+  // is why the Dockerfile carries an ARG for each one.
+  //
+  // A var read by a server component needs neither: it is read per request, so
+  // supplying it at runtime is enough. PADDLE_CLIENT_TOKEN works that way, read
+  // in src/app/checkout/page.tsx and passed down as a prop.
   env: {
     ANALYTICS_GA_MEASUREMENT_ID: process.env.ANALYTICS_GA_MEASUREMENT_ID ?? "",
   },

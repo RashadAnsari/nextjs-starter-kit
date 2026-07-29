@@ -127,6 +127,14 @@ Object storage enforces no size or content-type limit of its own, so `src/app/ap
 
 Google Analytics loads only after the visitor accepts. Before that, no script and no cookie exist at all, which is what keeps it compliant under GDPR and ePrivacy. The choice is stored in `localStorage`, not a cookie, so nothing is written before consent is given. Leave `ANALYTICS_GA_MEASUREMENT_ID` empty and both the tracking and the banner disappear.
 
+### Environment variables, and when they are read
+
+Most variables are read on the server, per request. Set them in the container's environment and they take effect on restart, with no rebuild.
+
+The exception is the `env` block in `next.config.ts`. Next.js substitutes those at build time, so they are baked into the image: setting one on a running container does nothing, and it must also be a `Dockerfile` build argument and a CI build arg. They also end up in JavaScript the browser downloads, so a secret must never go there. Only `ANALYTICS_GA_MEASUREMENT_ID` is in that block, because the analytics script needs it in the browser.
+
+`PADDLE_CLIENT_TOKEN` is the instructive counter-example. It is a browser-side value too, but `src/app/checkout/page.tsx` reads it on the server and passes it down as a prop, so it stays ordinary runtime configuration and appears in neither `next.config.ts` nor the `Dockerfile`. Prefer that pattern: it keeps a value out of every page's bundle and lets you change it without rebuilding.
+
 ### Security headers
 
 `next.config.ts` sets a Content-Security-Policy plus the usual hardening headers. The allowed media origins are derived from `ASSETS_BASE_URL` and `S3_ENDPOINT` rather than configured separately, so moving a bucket or putting a CDN in front of one needs no CSP edit.
