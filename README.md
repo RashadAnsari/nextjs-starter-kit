@@ -101,10 +101,13 @@ All SQL lives in `src/lib/repositories/`, one class per table, each taking a con
 
 That third step exists because an incoming webhook has to be attributed before it can be verified, and the only trustworthy signal is which signature header it carries. Reading `PAYMENT_PROVIDER` instead would break the day you switch providers, since subscriptions created under the old one keep sending events.
 
-Two details worth understanding before you change anything here:
+**Paddle does not host the checkout page.** Creating a transaction returns `{your default payment link}?_ptxn={transaction id}`, a URL on your own domain, so `src/app/checkout/page.tsx` exists to receive it and open the Paddle.js overlay. Set the default payment link in the Paddle dashboard under Checkout settings to `https://yourdomain.com/checkout`. Miss this and checkout sends customers to whatever that setting points at, which is nothing.
+
+Three details worth understanding before you change anything here:
 
 - **The webhook is the source of truth.** `/payment/success` deliberately activates nothing, because anyone can visit that URL. Access is granted when the signature-verified webhook arrives.
 - **Webhooks are deduplicated.** A hash of the raw verified body is stored in `processed_webhook_events`. Signature verification proves authenticity but not freshness, so without this a replayed older event could resurrect cancelled access.
+- **The client token is read on the server.** `/checkout` reads `PADDLE_CLIENT_TOKEN` and passes it down as a prop. It is public by design, so inlining it would be safe, but it is only needed by one component and does not belong in every page's bundle.
 
 `hasPremiumAccess()` in `plans.ts` is the single access gate. Call it from every server route that serves paid content.
 

@@ -134,6 +134,7 @@ jobs:
   #           -e "analytics_ga_measurement_id=${{ secrets.ANALYTICS_GA_MEASUREMENT_ID }}"
   #           -e "payment_provider=${{ secrets.PAYMENT_PROVIDER }}"
   #           -e "paddle_api_key=${{ secrets.PADDLE_API_KEY }}"
+  #           -e "paddle_client_token=${{ secrets.PADDLE_CLIENT_TOKEN }}"
   #           -e "paddle_webhook_secret=${{ secrets.PADDLE_WEBHOOK_SECRET }}"
   #           -e "paddle_price_id_monthly=${{ secrets.PADDLE_PRICE_ID_MONTHLY }}"
   #           -e "paddle_price_id_monthly_no_trial=${{ secrets.PADDLE_PRICE_ID_MONTHLY_NO_TRIAL }}"
