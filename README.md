@@ -1,8 +1,48 @@
 # Next.js Starter Kit
 
-A production-ready Next.js template with the parts every SaaS needs already built: authentication, Postgres, transactional email, object storage, subscriptions, analytics with cookie consent, and a one-command deploy to your own server.
+**Stop rebuilding login, billing, and deploys. Start on the part that is actually yours.**
 
-It is deliberately not a framework. Everything is plain Next.js, plain SQL, and a thin repository layer, so you can read all of it in an afternoon and change any part of it without fighting an abstraction.
+A complete, self-hosted SaaS foundation: authentication, Postgres, transactional email, object storage, subscriptions, GDPR-compliant analytics, and a one-command deploy to a server you own.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](LICENSE)
+![Next.js 16](https://img.shields.io/badge/Next.js-16-black?logo=next.js&logoColor=white)
+![React 19](https://img.shields.io/badge/React-19-black?logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.9-black?logo=typescript&logoColor=white)
+![Tailwind CSS 4](https://img.shields.io/badge/Tailwind-4-black?logo=tailwindcss&logoColor=white)
+![Postgres 18](https://img.shields.io/badge/Postgres-18-black?logo=postgresql&logoColor=white)
+
+<!-- After publishing, add the CI badge:
+![Build](https://github.com/USER/REPO/actions/workflows/build.yml/badge.svg) -->
+
+![Landing page](docs/screenshots/landing.png)
+
+|                                               |                                         |
+| --------------------------------------------- | --------------------------------------- |
+| ![Pricing page](docs/screenshots/pricing.png) | ![Sign up](docs/screenshots/signup.png) |
+
+Everything above is in the repository and runs on a fresh clone, before you write a line of code.
+
+## Why this one
+
+Most starter kits ask you to pick a side: pay a few hundred euros for a closed template, or accept a stack welded to one vendor's hosting, database, and auth.
+
+This one is neither.
+
+- **It is yours.** MIT, free, no licence key, no attribution. Fork it and never think about it again.
+- **No vendor lock-in.** Postgres over the plain `pg` driver, S3-compatible storage, any SMTP relay, and a billing interface with one provider implemented behind it. Every piece is swappable because nothing is welded to a platform SDK.
+- **It deploys to your own server.** A Docker build, GitHub Actions, and Ansible playbooks put the app and its database on a machine you control, with automated backups to object storage. No per-seat platform bill that grows with your success.
+- **You can read all of it.** Plain Next.js, plain SQL, and a thin repository layer. No generated code, no hidden framework, about 5,500 lines you could review in an afternoon.
+- **The security details are already right.** Webhook replay protection, redirect validation, per-user storage prefixes, a real CSP, and consent-gated analytics. These are the parts that are easy to get subtly wrong and expensive to discover late.
+
+### Who it is for
+
+Someone starting a subscription product who wants to own their infrastructure, and who would rather adapt readable code than configure someone else's abstraction.
+
+**Probably not for you if** you want a one-click hosted platform, a drag-and-drop admin panel, or a kit that picks a UI component library for you. This deliberately ships primitives, not a design system.
+
+## Contents
+
+[What's inside](#whats-inside) · [Quick start](#quick-start) · [Make it yours](#make-it-yours) · [Project layout](#project-layout) · [How the pieces work](#how-the-pieces-work) · [Deployment](#deployment) · [Commands](#commands)
 
 ## What's inside
 
@@ -237,6 +277,14 @@ Stop the app stack first so nothing writes during the restore. Rehearse this at 
 - **TypeScript is pinned to 5.x, not 7.** `eslint-config-next` depends on `typescript-eslint` v8, which supports `typescript >=4.8.4 <6.1.0`. TypeScript 7 will work here once that peer range moves.
 - **ESLint is pinned to 9, not 10.** `eslint-plugin-react`, bundled by `eslint-config-next`, crashes on ESLint 10 (`contextOrFilename.getFilename is not a function`).
 
+## Contributing
+
+Fixes, dependency bumps, and documentation that saves someone an hour are all welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for what is in scope and the checks a pull request has to pass. Read [AGENTS.md](AGENTS.md) first: it carries the conventions this codebase actually follows.
+
+Found a security issue? Please do not open a public issue. Email the address in `src/config/site.ts` instead.
+
 ## License
 
-MIT. Use it for anything, including commercial work, with no attribution required.
+[MIT](LICENSE). Use it for anything, including commercial work, with no attribution required.
+
+If it saved you a weekend, a star costs nothing and helps other people find it.
