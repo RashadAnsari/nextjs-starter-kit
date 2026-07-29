@@ -175,10 +175,10 @@ Mixing the two is fine. A common split is a designed `opengraph-image.png` in `s
 
 The app and the infrastructure it depends on are two independent compose stacks on the same host, each with its own playbook, so redeploying the app never restarts Postgres.
 
-| Stack | Playbook            | Template                            | Triggered by                                     |
-| ----- | ------------------- | ----------------------------------- | ------------------------------------------------ |
-| Infra | `deploy/infra.yaml` | `deploy/tmpls/infra-compose.yml.j2` | the **Infra** workflow, manually                 |
-| App   | `deploy/app.yaml`   | `deploy/tmpls/app-compose.yml.j2`   | the deploy job in `build.yml`, on push to `main` |
+| Stack | Playbook            | Template                            | Triggered by                                       |
+| ----- | ------------------- | ----------------------------------- | -------------------------------------------------- |
+| Infra | `deploy/infra.yaml` | `deploy/tmpls/infra-compose.yml.j2` | the **Infra** workflow, manually                   |
+| App   | `deploy/app.yaml`   | `deploy/tmpls/app-compose.yml.j2`   | the deploy job in `build.yml`, on push to `master` |
 
 The infra stack holds the stateful services (Postgres and its backup sidecar) and owns the `app_network` Docker network. The app stack joins that network as an external network and reaches Postgres by hostname, so the database port is never published. Run the Infra workflow once before the first app deploy; `deploy/app.yaml` fails early with a clear error if the network is missing.
 
