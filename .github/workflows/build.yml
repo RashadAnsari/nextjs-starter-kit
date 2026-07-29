@@ -29,18 +29,59 @@ jobs:
       - name: Build
         run: bun run build
 
+  # Builds the production image without publishing or deploying it, so a change
+  # that breaks the Dockerfile fails here rather than at deploy time. The layer
+  # cache lives in GitHub Actions, so only the layers you actually changed are
+  # rebuilt.
+  docker:
+    name: Docker image
+    runs-on: ubuntu-latest
+    needs: check
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Docker Build
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile
+          push: false
+          load: true
+          tags: app:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          # Secrets are unavailable to pull requests from forks, so this is
+          # empty there. That is harmless: analytics is optional, and the value
+          # is public anyway once inlined into the client bundle.
+          build-args: |
+            NODE_ENV=production
+            GIT_SHA=${{ github.sha }}
+            ANALYTICS_GA_MEASUREMENT_ID=${{ secrets.ANALYTICS_GA_MEASUREMENT_ID }}
+
   # Uncomment once deploy/inventory is pointed at your own server and the
   # secrets below exist in the repository. Run the Infra workflow once first:
   # it creates the Docker network and the Postgres this stack joins.
+  #
+  # It rebuilds the image rather than reusing the one above, so the job is
+  # self-contained; the cache makes the second build cheap. If you would rather
+  # build once, have the docker job upload the tar with actions/upload-artifact
+  # and download it here.
   #
   # deploy:
   #   name: Deploy
   #   if: github.ref == 'refs/heads/master'
   #   runs-on: ubuntu-latest
-  #   needs: check
+  #   needs: docker
   #   steps:
   #     - name: Checkout code
   #       uses: actions/checkout@v7
+  #
+  #     - name: Set up Buildx
+  #       uses: docker/setup-buildx-action@v4
   #
   #     - name: Docker Build
   #       uses: docker/build-push-action@v7
@@ -48,7 +89,9 @@ jobs:
   #         context: .
   #         file: Dockerfile
   #         push: false
+  #         load: true
   #         tags: app:${{ github.sha }}
+  #         cache-from: type=gha
   #         build-args: |
   #           NODE_ENV=production
   #           GIT_SHA=${{ github.sha }}

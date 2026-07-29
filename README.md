@@ -184,7 +184,7 @@ The infra stack holds the stateful services (Postgres and its backup sidecar) an
 
 Migrations run from `deploy/app.yaml` after the app container starts, since the schema belongs to the app version being deployed rather than to the infra stack.
 
-To enable deployment: point the inventory in both workflows at your server, add the secrets they reference, and uncomment the `deploy` job in `.github/workflows/build.yml`.
+CI already builds the production image on every push and pull request, so a change that breaks the `Dockerfile` fails there rather than at deploy time. It stops at building: nothing is published or shipped anywhere. To enable deployment on top of that, point the inventory in both workflows at your server, add the secrets they reference, and uncomment the `deploy` job in `.github/workflows/build.yml`.
 
 ### Backups
 
