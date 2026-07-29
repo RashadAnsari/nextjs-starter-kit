@@ -2,45 +2,89 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 
 /**
- * Shared shell for the policy pages, so they stay visually identical and a
- * change to the layout happens in one place.
+ * One clause of a policy. `content` is the prose, `items` the enumerated points
+ * beneath it (each optionally led by a bold subtitle), and `footer` a closing
+ * qualification set in smaller italics, which is where caveats and statutory
+ * carve-outs belong.
+ */
+export interface LegalSection {
+  title: string;
+  content?: string;
+  items?: { subtitle?: string; text: string }[];
+  footer?: string;
+}
+
+/**
+ * Shared shell for the privacy, terms, and refund pages, so all three stay
+ * visually identical and a change to the layout happens in one place. Each page
+ * supplies only its own section data.
  */
 export function LegalPage({
   title,
   lastUpdated,
-  children,
+  intro,
+  sections,
 }: {
   title: string;
   lastUpdated: string;
-  children: React.ReactNode;
+  intro: string;
+  sections: LegalSection[];
 }) {
   return (
-    <div className="flex min-h-screen flex-col bg-[var(--gray-50)]">
+    <div className="min-h-screen bg-[var(--gray-50)]">
       <Navbar />
 
-      <main className="mx-auto w-full max-w-[760px] flex-1 px-6 py-16">
-        <h1 className="text-3xl font-bold text-[var(--gray-900)]">{title}</h1>
-        <p className="mt-2 text-sm text-[var(--gray-500)]">Last updated: {lastUpdated}</p>
+      <div className="container py-16 text-center">
+        <h1 className="mb-4 text-4xl font-bold text-[var(--gray-900)]">{title}</h1>
+        <p className="text-sm text-[var(--gray-500)]">Last updated: {lastUpdated}</p>
+        <p className="mx-auto mt-4 max-w-[680px] text-lg text-[var(--gray-600)]">{intro}</p>
+      </div>
 
-        <div className="mt-10 flex flex-col gap-8">{children}</div>
-      </main>
+      <div className="mx-auto flex max-w-[800px] flex-col gap-6 px-6 pb-20">
+        {sections.map((section) => (
+          <section
+            key={section.title}
+            className="rounded-xl border border-[var(--gray-200)] bg-white p-8"
+          >
+            <h2 className="mb-4 text-lg font-semibold text-[var(--gray-900)]">{section.title}</h2>
+
+            {section.content && (
+              <p className="mb-4 leading-relaxed text-[var(--gray-600)]">{section.content}</p>
+            )}
+
+            {section.items && (
+              <ul className="mb-4 flex flex-col gap-3">
+                {section.items.map((item) => (
+                  <li key={item.text} className="flex gap-3 leading-relaxed text-[var(--gray-600)]">
+                    <span className="mt-1 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-[var(--brand-50)] text-xs font-bold text-[var(--brand-700)]">
+                      ✓
+                    </span>
+                    <span>
+                      {item.subtitle ? (
+                        <>
+                          <strong className="text-[var(--gray-800)]">{item.subtitle}</strong>
+                          {": "}
+                          {item.text}
+                        </>
+                      ) : (
+                        item.text
+                      )}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {section.footer && (
+              <p className="mt-2 text-sm italic leading-relaxed text-[var(--gray-500)]">
+                {section.footer}
+              </p>
+            )}
+          </section>
+        ))}
+      </div>
 
       <Footer />
     </div>
-  );
-}
-
-export function LegalSection({
-  heading,
-  children,
-}: {
-  heading: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section>
-      <h2 className="mb-2 text-xl font-semibold text-[var(--gray-900)]">{heading}</h2>
-      <div className="flex flex-col gap-3 leading-relaxed text-[var(--gray-700)]">{children}</div>
-    </section>
   );
 }

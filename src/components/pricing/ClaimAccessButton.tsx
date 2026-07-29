@@ -3,15 +3,31 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { withNext } from "@/lib/redirects";
 
+interface Props {
+  /** Where to send the visitor when access cannot be granted automatically. */
+  contactHref: string;
+  variant?: "primary" | "outline" | "white";
+  fullWidth?: boolean;
+  children: React.ReactNode;
+}
+
 /**
- * Shown instead of CheckoutButton while no payment provider is configured, so
- * the whole signup-to-access path works before billing is set up. It grants the
- * complimentary plan and drops the user on the dashboard.
+ * Claims complimentary access, which is what the pricing CTA does while no
+ * payment provider is configured. It grants access server-side and moves the
+ * visitor to the dashboard.
+ *
+ * When the grant cannot be made, for example because the account already has a
+ * subscription row, the same button falls back to the contact link rather than
+ * dead-ending on an error.
  */
-export function ClaimAccessButton({ children }: { children: React.ReactNode }) {
+export function ClaimAccessButton({
+  contactHref,
+  variant = "primary",
+  fullWidth,
+  children,
+}: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,33 +36,33 @@ export function ClaimAccessButton({ children }: { children: React.ReactNode }) {
     setLoading(true);
     setError(null);
 
-    const res = await fetch("/api/payments/complimentary", { method: "POST" });
+    try {
+      const res = await fetch("/api/payments/complimentary", { method: "POST" });
+      if (res.status === 401) {
+        router.push(withNext("/auth/signup", "/pricing"));
+        return;
+      }
 
-    if (res.status === 401) {
-      router.push(withNext("/auth/signup", "/pricing"));
-      return;
-    }
+      const data = await res.json();
+      if (res.ok && data.granted) {
+        router.push("/dashboard");
+        return;
+      }
 
-    const data = await res.json().catch(() => ({}));
-    setLoading(false);
-
-    if (!res.ok) {
+      setLoading(false);
+      window.location.href = contactHref;
+    } catch {
       setError("Something went wrong. Please try again.");
-      return;
+      setLoading(false);
     }
-    if (!data.granted) {
-      setError("You already have access. Head to your dashboard to get started.");
-      return;
-    }
-    router.push("/dashboard");
   }
 
   return (
     <div className="flex flex-col gap-2">
-      <ErrorBanner message={error} onHide={() => setError(null)} />
-      <Button variant="primary" fullWidth disabled={loading} onClick={handleClick}>
-        {loading ? "Setting up…" : children}
+      <Button variant={variant} fullWidth={fullWidth} disabled={loading} onClick={handleClick}>
+        {loading ? "Redirecting…" : children}
       </Button>
+      {error && <p className="text-center text-xs text-[var(--red)]">{error}</p>}
     </div>
   );
 }
