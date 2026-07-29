@@ -22,8 +22,21 @@ export function PaddleInitializer({ token, environment }: Props) {
         settings: {
           variant: "one-page",
           displayMode: "overlay",
+          // The customer is already signed in to this app, so letting them
+          // switch account inside the overlay would detach the subscription
+          // from the user id passed in customData.
           allowLogout: false,
           successUrl: `${window.location.origin}/payment/success`,
+
+          // Everything below is a product decision, deliberately left at
+          // Paddle's defaults rather than chosen for you. Uncomment what fits:
+          //
+          // locale: "en",                  // force one language; omitted means Paddle follows the browser
+          // showAddTaxId: false,           // hide the business tax ID field, for a consumer product
+          // showAddDiscounts: false,       // hide the promo code box if you never run promotions
+          // allowDiscountRemoval: false,   // stop a customer clearing a discount you applied
+          // allowedPaymentMethods: [...],  // restrict methods; leave unset to offer everything
+          //                                // Paddle supports for the customer's country
         },
       },
       eventCallback(event) {
