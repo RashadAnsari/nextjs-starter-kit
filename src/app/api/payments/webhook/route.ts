@@ -7,6 +7,30 @@ import { SubscriptionRepository } from "@/lib/repositories/subscriptionRepositor
 import { SubscriptionEventRepository } from "@/lib/repositories/subscriptionEventRepository";
 import { ProcessedWebhookRepository } from "@/lib/repositories/processedWebhookRepository";
 
+/**
+ * Which provider sent a webhook is decided by its signature header rather than
+ * by PAYMENT_PROVIDER, so events for a provider you have since migrated away
+ * from keep processing correctly instead of being rejected.
+ *
+ * This is the one place outside src/lib/payment/ that names a provider. Adding
+ * one means a line here as well as a case in getPaymentProviderByName.
+ */
+const SIGNATURE_HEADERS = [
+  { header: "paddle-signature", provider: "paddle" },
+  // { header: "stripe-signature", provider: "stripe" },
+] as const;
+
+/** The provider that signed this request, and the signature it sent. */
+function detectProvider(req: NextRequest) {
+  for (const { header, provider } of SIGNATURE_HEADERS) {
+    const signature = req.headers.get(header);
+    if (signature) {
+      return { providerName: provider, signature };
+    }
+  }
+  return null;
+}
+
 /** JSON-safe snapshot of a webhook event for the history's raw_event column. */
 function serializeEvent(event: WebhookEvent) {
   return {
@@ -21,24 +45,33 @@ export async function POST(req: NextRequest) {
   // exact bytes the provider signed.
   const rawBody = await req.text();
 
-  // Which provider sent this is decided by the signature header, not by
-  // PAYMENT_PROVIDER, so events for an older provider still process correctly.
-  const paddleSignature = req.headers.get("paddle-signature");
-  if (!paddleSignature) {
-    console.error("[webhook] No signature header found");
+  const detected = detectProvider(req);
+  if (!detected) {
+    console.error("[webhook] No known signature header found");
     return NextResponse.json({ error: "Invalid webhook" }, { status: 400 });
   }
-  const providerName = "paddle";
+  const { providerName, signature } = detected;
 
-  const provider = getPaymentProviderByName(providerName);
+  // Constructing a provider reads its credentials and throws when they are
+  // missing, which is the normal state of a deployment that has not configured
+  // billing yet. Both that and an unregistered name answer 400 rather than 500,
+  // because neither is transient and a 500 would have the provider retrying a
+  // configuration error indefinitely.
+  let provider;
+  try {
+    provider = getPaymentProviderByName(providerName);
+  } catch (err) {
+    console.error("[webhook] Provider %s is not configured:", providerName, err);
+    return NextResponse.json({ error: "Invalid webhook" }, { status: 400 });
+  }
   if (!provider) {
-    console.error("[webhook] No provider found for name:", providerName);
+    console.error("[webhook] No provider registered for name:", providerName);
     return NextResponse.json({ error: "Invalid webhook" }, { status: 400 });
   }
 
   let event;
   try {
-    event = await provider.parseWebhook(rawBody, paddleSignature);
+    event = await provider.parseWebhook(rawBody, signature);
   } catch (err) {
     console.error("[webhook] Failed to parse event:", err);
     return NextResponse.json({ error: "Invalid webhook" }, { status: 400 });

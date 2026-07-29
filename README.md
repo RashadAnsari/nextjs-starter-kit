@@ -97,7 +97,9 @@ All SQL lives in `src/lib/repositories/`, one class per table, each taking a con
 
 ### Payments
 
-`src/lib/payment/types.ts` defines the `PaymentProvider` interface. Paddle implements it in `paddle.ts`. To add Stripe or Lemon Squeezy, implement the interface and register it in `provider.ts`; nothing outside `src/lib/payment/` knows which provider is in use.
+`src/lib/payment/types.ts` defines the `PaymentProvider` interface. Paddle implements it in `paddle.ts`. To add Stripe or Lemon Squeezy: implement the interface, register it in `getPaymentProviderByName` in `provider.ts`, and add its signature header to `SIGNATURE_HEADERS` in `src/app/api/payments/webhook/route.ts`. Those three points are the only places that name a provider; the pages and the rest of the API never do.
+
+That third step exists because an incoming webhook has to be attributed before it can be verified, and the only trustworthy signal is which signature header it carries. Reading `PAYMENT_PROVIDER` instead would break the day you switch providers, since subscriptions created under the old one keep sending events.
 
 Two details worth understanding before you change anything here:
 
