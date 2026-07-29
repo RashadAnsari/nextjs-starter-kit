@@ -4,15 +4,13 @@
 
 A complete, self-hosted SaaS foundation: authentication, Postgres, transactional email, object storage, subscriptions, GDPR-compliant analytics, and a one-command deploy to a server you own.
 
+[![Build](https://github.com/RashadAnsari/nextjs-starter-kit/actions/workflows/build.yml/badge.svg)](https://github.com/RashadAnsari/nextjs-starter-kit/actions/workflows/build.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](LICENSE)
 ![Next.js 16](https://img.shields.io/badge/Next.js-16-black?logo=next.js&logoColor=white)
 ![React 19](https://img.shields.io/badge/React-19-black?logo=react)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-black?logo=typescript&logoColor=white)
 ![Tailwind CSS 4](https://img.shields.io/badge/Tailwind-4-black?logo=tailwindcss&logoColor=white)
 ![Postgres 18](https://img.shields.io/badge/Postgres-18-black?logo=postgresql&logoColor=white)
-
-<!-- After publishing, add the CI badge:
-![Build](https://github.com/USER/REPO/actions/workflows/build.yml/badge.svg) -->
 
 ![Landing page](docs/screenshots/landing.png)
 
@@ -31,7 +29,7 @@ This one is neither.
 - **It is yours.** MIT, free, no licence key, no attribution. Fork it and never think about it again.
 - **No vendor lock-in.** Postgres over the plain `pg` driver, S3-compatible storage, any SMTP relay, and a billing interface with one provider implemented behind it. Every piece is swappable because nothing is welded to a platform SDK.
 - **It deploys to your own server.** A Docker build, GitHub Actions, and Ansible playbooks put the app and its database on a machine you control, with automated backups to object storage. No per-seat platform bill that grows with your success.
-- **You can read all of it.** Plain Next.js, plain SQL, and a thin repository layer. No generated code, no hidden framework, about 5,500 lines you could review in an afternoon.
+- **You can read all of it.** Plain Next.js, plain SQL, and a thin repository layer. No generated code, no hidden framework, and few enough lines to review end to end in an afternoon.
 - **The security details are already right.** Webhook replay protection, redirect validation, per-user storage prefixes, a real CSP, and consent-gated analytics. These are the parts that are easy to get subtly wrong and expensive to discover late.
 
 ### Who it is for
@@ -60,6 +58,14 @@ Someone starting a subscription product who wants to own their infrastructure, a
 | **Ops**       | Docker build, GitHub Actions, Ansible playbooks, automated database backups to object storage                    |
 
 ## Quick start
+
+```bash
+git clone https://github.com/RashadAnsari/nextjs-starter-kit.git my-app
+cd my-app
+rm -rf .git && git init        # start your own history
+```
+
+Then:
 
 ```bash
 bun install
@@ -281,7 +287,7 @@ Stop the app stack first so nothing writes during the restore. Rehearse this at 
 
 Fixes, dependency bumps, and documentation that saves someone an hour are all welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for what is in scope and the checks a pull request has to pass. Read [AGENTS.md](AGENTS.md) first: it carries the conventions this codebase actually follows.
 
-Found a security issue? Please do not open a public issue. Email the address in `src/config/site.ts` instead.
+Found a security issue? Please do not open a public issue. Use [private vulnerability reporting](https://github.com/RashadAnsari/nextjs-starter-kit/security/advisories/new) on the Security tab instead.
 
 ## License
 
