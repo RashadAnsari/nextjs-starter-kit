@@ -41,7 +41,7 @@ openssl rand -base64 32
 
 1. **Name and branding.** Edit `src/config/site.ts`: name, tagline, description, canonical URL, support email, brand colour. Every page title, email, navbar, and footer reads from it.
 2. **Colours.** Edit the `--brand-*` tokens in `src/app/globals.css`, and keep `site.brandColor` in sync (email clients cannot read CSS variables, so the templates need the literal value).
-3. **Icons and social card.** There is no `public/` directory and no image assets to swap out. Everything is generated from the site config: `src/app/icon.tsx` produces the favicon plus the 192 and 512 sizes the web manifest needs, `src/app/apple-icon.tsx` the iOS home-screen icon, `src/app/opengraph-image.tsx` the social preview card, and `src/app/manifest.ts` the web manifest itself. All of them rebrand automatically. When you have designed artwork, delete those files and drop `icon.png`, `apple-icon.png`, and `opengraph-image.png` into `src/app/` instead: Next.js picks either form up by filename.
+3. **Icons and social card.** There is no `public/` directory and no image assets to swap out. Everything is generated from the site config: `src/app/icon.tsx` produces the favicon plus the 192 and 512 sizes the web manifest needs, `src/app/apple-icon.tsx` the iOS home-screen icon, `src/app/opengraph-image.tsx` the social preview card, and `src/app/manifest.ts` the web manifest itself. All of them rebrand automatically. See [Replacing the generated assets](#replacing-the-generated-assets) when you have real artwork.
 4. **Plan.** Edit `PLAN` in `src/components/pricing/PricingCards.tsx` and the plan ids in `src/lib/payment/plans.ts`.
 5. **Legal pages.** The privacy, terms, and refund pages are a starting point, not legal advice. Review them with a lawyer before taking real customers.
 6. **Delete what you don't need.** The upload route (`src/app/api/uploads/`) and the whole `payment` module are self-contained: removing either one breaks nothing else.
@@ -125,6 +125,49 @@ Google Analytics loads only after the visitor accepts. Before that, no script an
 ### Security headers
 
 `next.config.ts` sets a Content-Security-Policy plus the usual hardening headers. The allowed media origins are derived from `ASSETS_BASE_URL` and `S3_ENDPOINT` rather than configured separately, so moving a bucket or putting a CDN in front of one needs no CSP edit.
+
+### Replacing the generated assets
+
+The icons, the social card, and the manifest are generated so that a fresh clone looks right before you have designed anything. Once you do, there are two ways to swap them in, and both are fully supported.
+
+**Drop files into `src/app/`.** Next.js recognises them by filename and emits the `<head>` tags for you, exactly as the generated versions do. Delete the `.tsx` file first: a directory cannot hold both `icon.tsx` and `icon.png`.
+
+| Delete                        | Add in `src/app/`                      |
+| ----------------------------- | -------------------------------------- |
+| `src/app/icon.tsx`            | `icon.png` (or `.ico`, `.jpg`, `.svg`) |
+| `src/app/apple-icon.tsx`      | `apple-icon.png`                       |
+| `src/app/opengraph-image.tsx` | `opengraph-image.png` (1200×630)       |
+| `src/app/manifest.ts`         | `manifest.webmanifest`                 |
+
+A `favicon.ico` also works, but only at the top level of `src/app/`, not in a nested segment.
+
+**Or put them in `public/` instead.** This is the classic layout, and the right choice if you already have an icon set from a generator like RealFaviconGenerator, or if something outside the app needs the files at fixed URLs. There is no `public/` directory in a fresh clone, so create one. Nothing is auto-detected this way: delete the corresponding `.tsx` files and declare each asset in the `metadata` export in `src/app/layout.tsx`.
+
+```ts
+export const metadata: Metadata = {
+  // …
+  manifest: "/site.webmanifest",
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon-96x96.png", sizes: "96x96", type: "image/png" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: "/apple-touch-icon.png",
+  },
+  openGraph: {
+    // …
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: site.name }],
+  },
+};
+```
+
+Two things to know before choosing:
+
+- **Nothing in `public/` rebrands itself.** The generated versions read `site.name` and `site.brandColor`, so renaming the product updates them. Static files do not, and the manifest then duplicates the name and theme colour in a second place that can drift.
+- **`public/` needs no proxy change.** Its files carry extensions, which `src/proxy.ts` already excludes from route protection. The generated routes are extensionless (`/icon/192`, `/apple-icon`), which is why the matcher names them explicitly. If you move to `public/` you can drop those names from the matcher; if you add a new extensionless asset route, you must add it.
+
+Mixing the two is fine. A common split is a designed `opengraph-image.png` in `src/app/` alongside a generated favicon, or a full icon set in `public/` while the social card stays generated.
 
 ## Deployment
 
