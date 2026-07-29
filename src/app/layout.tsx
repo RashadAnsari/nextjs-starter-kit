@@ -18,15 +18,15 @@ export const metadata: Metadata = {
     template: `%s | ${site.name}`,
   },
   description: site.description,
+  // The og:image and twitter:image tags are injected by Next.js from
+  // src/app/opengraph-image.tsx, so they are deliberately absent here.
   openGraph: {
     siteName: site.name,
     type: "website",
     locale: "en_US",
-    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: site.name }],
   },
   twitter: {
     card: "summary_large_image",
-    images: ["/og-image.png"],
   },
   robots: {
     index: true,

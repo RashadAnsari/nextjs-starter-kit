@@ -67,8 +67,14 @@ export async function proxy(request: NextRequest) {
 // does real harm: Next buffers the whole request body in memory for a proxied
 // request, capped at 10 MB, and silently truncates anything larger. That
 // corrupts large uploads posted to a route handler.
+//
+// The icon and social-image routes are excluded too. Next.js generates them
+// from src/app/icon.tsx and src/app/opengraph-image.tsx at extensionless paths
+// (/icon, /opengraph-image, and /icon/1 style variants), so the file-extension
+// rule below does not catch them. Without this, browsers and social crawlers
+// fetching them are redirected to the login page and no preview card renders.
 export const config = {
   matcher: [
-    "/((?!api/|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|webmanifest|txt|xml)$).*)",
+    "/((?!api/|_next/static|_next/image|favicon.ico|(?:icon|apple-icon|opengraph-image|twitter-image)(?:/.*)?$|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|webmanifest|txt|xml)$).*)",
   ],
 };

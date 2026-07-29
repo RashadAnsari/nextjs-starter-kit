@@ -41,10 +41,11 @@ openssl rand -base64 32
 
 1. **Name and branding.** Edit `src/config/site.ts`: name, tagline, description, canonical URL, support email, brand colour. Every page title, email, navbar, and footer reads from it.
 2. **Colours.** Edit the `--brand-*` tokens in `src/app/globals.css`, and keep `site.brandColor` in sync (email clients cannot read CSS variables, so the templates need the literal value).
-3. **Plan.** Edit `PLAN` in `src/components/pricing/PricingCards.tsx` and the plan ids in `src/lib/payment/plans.ts`.
-4. **Legal pages.** The privacy, terms, and refund pages are a starting point, not legal advice. Review them with a lawyer before taking real customers.
-5. **Delete what you don't need.** The upload route (`src/app/api/uploads/`) and the whole `payment` module are self-contained: removing either one breaks nothing else.
-6. **Package name.** Change `name` in `package.json`, the image name in `Dockerfile` and `deploy/`, and the database name in `docker-compose.yml`.
+3. **Icon and social card.** There is no `public/` directory and no image assets to swap out. The favicon and the Open Graph card are generated from the site config by `src/app/icon.tsx` and `src/app/opengraph-image.tsx`, so they rebrand along with everything else. When you have designed artwork, delete those two files and drop an `icon.png` and an `opengraph-image.png` in `src/app/` instead: Next.js picks either form up by filename.
+4. **Plan.** Edit `PLAN` in `src/components/pricing/PricingCards.tsx` and the plan ids in `src/lib/payment/plans.ts`.
+5. **Legal pages.** The privacy, terms, and refund pages are a starting point, not legal advice. Review them with a lawyer before taking real customers.
+6. **Delete what you don't need.** The upload route (`src/app/api/uploads/`) and the whole `payment` module are self-contained: removing either one breaks nothing else.
+7. **Package name.** Change `name` in `package.json`, the image name in `Dockerfile` and `deploy/`, and the database name in `docker-compose.yml`.
 
 ## Project layout
 
