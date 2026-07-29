@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CheckCircleIcon } from "@heroicons/react/24/outline";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { TrackCheckoutCompleted } from "@/components/pricing/TrackCheckoutCompleted";
 
 export const metadata = { title: "Payment complete" };
 
@@ -14,6 +15,7 @@ export const metadata = { title: "Payment complete" };
 export default function PaymentSuccessPage() {
   return (
     <div className="flex min-h-screen flex-col bg-[var(--gray-50)]">
+      <TrackCheckoutCompleted />
       <Navbar />
 
       <main className="container flex flex-1 items-center justify-center py-24">

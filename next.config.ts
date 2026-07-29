@@ -21,8 +21,9 @@ const assetsOrigin = origin(process.env.ASSETS_BASE_URL);
 const uploadsOrigin = origin(process.env.S3_ENDPOINT);
 const mediaOrigins = [...new Set([assetsOrigin, uploadsOrigin])].filter(Boolean).join(" ");
 
-const media = mediaOrigins ? ` ${mediaOrigins}` : "";
-const images = mediaOrigins ? ` ${mediaOrigins}` : "";
+// Both media-src and img-src allow the same two hosts: an <img> may point at a
+// public asset, and a signed URL may serve either an image or a video.
+const storage = mediaOrigins ? ` ${mediaOrigins}` : "";
 
 const csp = [
   "font-src 'self'",
@@ -33,8 +34,8 @@ const csp = [
   "frame-ancestors 'none'",
   "frame-src https://*.paddle.com",
   "style-src 'self' 'unsafe-inline'",
-  `media-src 'self' blob:${media}`,
-  `img-src 'self' data: blob:${images} https://www.google-analytics.com https://*.google-analytics.com`,
+  `media-src 'self' blob:${storage}`,
+  `img-src 'self' data: blob:${storage} https://www.google-analytics.com https://*.google-analytics.com`,
   "connect-src 'self' blob: https://*.paddle.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com",
   `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""} https://cdn.paddle.com https://www.googletagmanager.com`,
 ].join("; ");
@@ -73,7 +74,6 @@ const nextConfig: NextConfig = {
   // so anything listed here is public: never add a secret.
   env: {
     ANALYTICS_GA_MEASUREMENT_ID: process.env.ANALYTICS_GA_MEASUREMENT_ID ?? "",
-    PADDLE_CLIENT_TOKEN: process.env.PADDLE_CLIENT_TOKEN ?? "",
   },
 };
 

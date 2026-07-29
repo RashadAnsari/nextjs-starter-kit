@@ -20,8 +20,16 @@ export default function manifest(): MetadataRoute.Manifest {
     display: "standalone",
     background_color: "#ffffff",
     theme_color: site.brandColor,
+    // Each size is listed twice, once per purpose. An icon declared only as
+    // maskable leaves a browser that wants a plain icon with none at all. The
+    // spec allows a space-separated "any maskable", but Next's Manifest type
+    // takes a single value, and separate entries are what Chrome documents.
+    // The same image serves both: a flat square with a centred glyph survives
+    // being cropped to a circle.
     icons: [
+      { src: "/icon/192", sizes: "192x192", type: "image/png", purpose: "any" },
       { src: "/icon/192", sizes: "192x192", type: "image/png", purpose: "maskable" },
+      { src: "/icon/512", sizes: "512x512", type: "image/png", purpose: "any" },
       { src: "/icon/512", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
   };
