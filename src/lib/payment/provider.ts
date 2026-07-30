@@ -1,3 +1,4 @@
+import "server-only";
 import type { PaymentProvider } from "./types";
 import { PaddleProvider } from "./paddle";
 
