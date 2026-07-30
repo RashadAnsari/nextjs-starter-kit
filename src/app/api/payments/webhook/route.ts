@@ -119,7 +119,7 @@ export async function POST(req: NextRequest) {
 
       // Use the owner resolved from the subscription, not event.userId, which is
       // empty for refund/adjustment events (the audit trail must name the user).
-      await events.record({
+      const recorded = await events.record({
         user_id: sub.user_id,
         event_type: event.type,
         payment_provider: providerName,
@@ -128,6 +128,11 @@ export async function POST(req: NextRequest) {
         occurred_at: now,
         raw_event: serializeEvent(event),
       });
+      if (recorded.error) {
+        // record() logged the failure. Return 500 without marking the event
+        // processed, so the provider retry can write the missing audit row.
+        return NextResponse.json({ error: "Processing failed" }, { status: 500 });
+      }
 
       await processed.markProcessed(eventKey, event.type);
       console.info(
@@ -137,11 +142,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
+    // Repository writes never throw: runWrite converts driver errors into the
+    // returned { error } shape, so each result must be checked explicitly. A
+    // swallowed failure here would answer 200 and lose the state change for
+    // good, e.g. a paying customer who never receives access.
     if (event.type === "payment.failed") {
       // Only update the status: do not overwrite the period dates.
-      await subscriptions.updateByUserId(event.userId, { status: "past_due", updated_at: now });
+      const { error } = await subscriptions.updateByUserId(event.userId, {
+        status: "past_due",
+        updated_at: now,
+      });
+      if (error) {
+        console.error(
+          "[webhook] Status update failed type=%s user=%s:",
+          event.type,
+          event.userId,
+          error
+        );
+        return NextResponse.json({ error: "Processing failed" }, { status: 500 });
+      }
     } else {
-      await subscriptions.upsert({
+      const { error } = await subscriptions.upsert({
         user_id: event.userId,
         plan_id: event.planId,
         status: event.status,
@@ -153,9 +174,13 @@ export async function POST(req: NextRequest) {
         cancel_at_period_end: event.cancelAtPeriodEnd,
         updated_at: now,
       });
+      if (error) {
+        console.error("[webhook] Upsert failed type=%s user=%s:", event.type, event.userId, error);
+        return NextResponse.json({ error: "Processing failed" }, { status: 500 });
+      }
     }
 
-    await events.record({
+    const recorded = await events.record({
       user_id: event.userId,
       event_type: event.type,
       plan_id: event.planId,
@@ -169,11 +194,18 @@ export async function POST(req: NextRequest) {
       occurred_at: now,
       raw_event: serializeEvent(event),
     });
+    if (recorded.error) {
+      // record() logged the failure. Return 500 without marking the event
+      // processed, so the provider retry can write the missing audit row.
+      return NextResponse.json({ error: "Processing failed" }, { status: 500 });
+    }
   } catch (err) {
-    console.error("[webhook] DB error:", err);
+    // Reached by the calls that do throw: the subscription lookup and the
+    // provider cancel API on the refund path.
+    console.error("[webhook] Processing failed type=%s:", event.type, err);
     // Return 500 so the provider retries. The event is not marked processed, so
     // the retry is reprocessed rather than deduped away.
-    return NextResponse.json({ error: "DB error" }, { status: 500 });
+    return NextResponse.json({ error: "Processing failed" }, { status: 500 });
   }
 
   await processed.markProcessed(eventKey, event.type);
