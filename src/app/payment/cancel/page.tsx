@@ -1,12 +1,23 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { XCircleIcon } from "@heroicons/react/24/outline";
+import { getSessionUser } from "@/lib/auth-session";
+import { withNext } from "@/lib/redirects";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { site } from "@/config/site";
 
 export const metadata = { title: "Checkout cancelled" };
 
-export default function PaymentCancelPage() {
+export default async function PaymentCancelPage() {
+  // The proxy already bounced anonymous visitors, but it only checks that a
+  // session cookie exists. This is the check that actually enforces access, and
+  // it is required of every protected page: see AGENTS.md.
+  const user = await getSessionUser();
+  if (!user) {
+    redirect(withNext("/auth/login", "/payment/cancel"));
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-[var(--gray-50)]">
       <Navbar />

@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
+import { getSessionUser } from "@/lib/auth-session";
+import { withNext } from "@/lib/redirects";
 import { PaddleInitializer } from "@/components/payment/PaddleInitializer";
 
 export const metadata: Metadata = {
@@ -25,6 +27,15 @@ export default async function CheckoutPage(props: { searchParams: Promise<{ _ptx
   const { _ptxn } = await props.searchParams;
   if (!_ptxn) {
     redirect("/pricing");
+  }
+
+  // The proxy already bounced anonymous visitors, but it only checks that a
+  // session cookie exists. This is the check that actually enforces access, and
+  // it is required of every protected page: see AGENTS.md. Carry the Paddle
+  // transaction id through login so the overlay reopens afterwards.
+  const user = await getSessionUser();
+  if (!user) {
+    redirect(withNext("/auth/login", `/checkout?_ptxn=${encodeURIComponent(_ptxn)}`));
   }
 
   const token = process.env.PADDLE_CLIENT_TOKEN;

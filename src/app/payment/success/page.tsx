@@ -1,5 +1,8 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { CheckCircleIcon } from "@heroicons/react/24/outline";
+import { getSessionUser } from "@/lib/auth-session";
+import { withNext } from "@/lib/redirects";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { TrackCheckoutCompleted } from "@/components/pricing/TrackCheckoutCompleted";
@@ -12,7 +15,15 @@ export const metadata = { title: "Payment complete" };
  * webhook arrives, which can be a moment later. Treating this page as proof of
  * payment would let anyone grant themselves access by visiting the URL.
  */
-export default function PaymentSuccessPage() {
+export default async function PaymentSuccessPage() {
+  // The proxy already bounced anonymous visitors, but it only checks that a
+  // session cookie exists. This is the check that actually enforces access, and
+  // it is required of every protected page: see AGENTS.md.
+  const user = await getSessionUser();
+  if (!user) {
+    redirect(withNext("/auth/login", "/payment/success"));
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-[var(--gray-50)]">
       <TrackCheckoutCompleted />
