@@ -123,6 +123,7 @@ export class PaddleProvider implements PaymentProvider {
           currentPeriodStart: new Date(sub.currentBillingPeriod?.startsAt ?? new Date()),
           currentPeriodEnd: new Date(sub.currentBillingPeriod?.endsAt ?? new Date()),
           cancelAtPeriodEnd: sub.scheduledChange?.action === "cancel",
+          occurredAt: new Date(event.occurredAt),
         };
       }
 
@@ -151,6 +152,7 @@ export class PaddleProvider implements PaymentProvider {
             currentPeriodStart: periodStart,
             currentPeriodEnd: cancelEnd,
             cancelAtPeriodEnd: false,
+            occurredAt: new Date(event.occurredAt),
           };
         }
 
@@ -165,6 +167,7 @@ export class PaddleProvider implements PaymentProvider {
             currentPeriodStart: periodStart,
             currentPeriodEnd: periodEnd,
             cancelAtPeriodEnd: false,
+            occurredAt: new Date(event.occurredAt),
           };
         }
 
@@ -179,6 +182,7 @@ export class PaddleProvider implements PaymentProvider {
             currentPeriodStart: periodStart,
             currentPeriodEnd: periodEnd,
             cancelAtPeriodEnd: sub.scheduledChange?.action === "cancel",
+            occurredAt: new Date(event.occurredAt),
           };
         }
 
@@ -205,6 +209,7 @@ export class PaddleProvider implements PaymentProvider {
             sub.canceledAt ?? sub.currentBillingPeriod?.endsAt ?? new Date()
           ),
           cancelAtPeriodEnd: false,
+          occurredAt: new Date(event.occurredAt),
         };
       }
 
@@ -226,6 +231,7 @@ export class PaddleProvider implements PaymentProvider {
           currentPeriodStart: new Date(sub.currentBillingPeriod?.startsAt ?? new Date()),
           currentPeriodEnd: new Date(sub.currentBillingPeriod?.endsAt ?? new Date()),
           cancelAtPeriodEnd: false,
+          occurredAt: new Date(event.occurredAt),
         };
       }
 
@@ -247,6 +253,7 @@ export class PaddleProvider implements PaymentProvider {
           currentPeriodStart: new Date(),
           currentPeriodEnd: new Date(),
           cancelAtPeriodEnd: false,
+          occurredAt: new Date(event.occurredAt),
         };
       }
 
@@ -270,6 +277,7 @@ export class PaddleProvider implements PaymentProvider {
           currentPeriodStart: new Date(),
           currentPeriodEnd: new Date(),
           cancelAtPeriodEnd: false,
+          occurredAt: new Date(event.occurredAt),
         };
       }
 

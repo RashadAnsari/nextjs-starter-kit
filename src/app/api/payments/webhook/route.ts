@@ -37,6 +37,7 @@ function serializeEvent(event: WebhookEvent) {
     ...event,
     currentPeriodStart: event.currentPeriodStart.toISOString(),
     currentPeriodEnd: event.currentPeriodEnd.toISOString(),
+    occurredAt: event.occurredAt.toISOString(),
   };
 }
 
@@ -86,6 +87,7 @@ export async function POST(req: NextRequest) {
   const events = new SubscriptionEventRepository(pool);
   const processed = new ProcessedWebhookRepository(pool);
   const now = new Date().toISOString();
+  const occurredAt = event.occurredAt.toISOString();
 
   // Idempotency guard: the key is a hash of the raw, signature-verified body, so
   // a provider retry or a replayed captured request is processed only once. This
@@ -136,7 +138,7 @@ export async function POST(req: NextRequest) {
         payment_provider: providerName,
         provider_customer_id: event.providerCustomerId,
         provider_subscription_id: event.providerSubscriptionId,
-        occurred_at: now,
+        occurred_at: occurredAt,
         raw_event: serializeEvent(event),
       });
       if (recorded.error) {
@@ -155,12 +157,14 @@ export async function POST(req: NextRequest) {
     // returned { error } shape, so each result must be checked explicitly. A
     // swallowed failure here would answer 200 and lose the state change for
     // good, e.g. a paying customer who never receives access.
+    //
+    // Both writes carry the provider's event time and are skipped when a newer
+    // event has already been applied: deliveries are retried and not ordered,
+    // so a delayed older event must not overwrite newer state. Skipped events
+    // are still recorded in the history below.
     if (event.type === "payment.failed") {
       // Only update the status: do not overwrite the period dates.
-      const { error } = await subscriptions.updateByUserId(event.userId, {
-        status: "past_due",
-        updated_at: now,
-      });
+      const { applied, error } = await subscriptions.markPastDue(event.userId, now, occurredAt);
       if (error) {
         console.error(
           "[webhook] Status update failed type=%s user=%s:",
@@ -170,22 +174,34 @@ export async function POST(req: NextRequest) {
         );
         return fail();
       }
+      if (!applied) {
+        console.info(
+          "[webhook] Stale or inapplicable payment.failed skipped user=%s",
+          event.userId
+        );
+      }
     } else {
-      const { error } = await subscriptions.upsert({
-        user_id: event.userId,
-        plan_id: event.planId,
-        status: event.status,
-        payment_provider: providerName,
-        provider_customer_id: event.providerCustomerId,
-        provider_subscription_id: event.providerSubscriptionId,
-        current_period_start: event.currentPeriodStart.toISOString(),
-        current_period_end: event.currentPeriodEnd.toISOString(),
-        cancel_at_period_end: event.cancelAtPeriodEnd,
-        updated_at: now,
-      });
+      const { applied, error } = await subscriptions.applyProviderEvent(
+        {
+          user_id: event.userId,
+          plan_id: event.planId,
+          status: event.status,
+          payment_provider: providerName,
+          provider_customer_id: event.providerCustomerId,
+          provider_subscription_id: event.providerSubscriptionId,
+          current_period_start: event.currentPeriodStart.toISOString(),
+          current_period_end: event.currentPeriodEnd.toISOString(),
+          cancel_at_period_end: event.cancelAtPeriodEnd,
+          updated_at: now,
+        },
+        occurredAt
+      );
       if (error) {
         console.error("[webhook] Upsert failed type=%s user=%s:", event.type, event.userId, error);
         return fail();
+      }
+      if (!applied) {
+        console.info("[webhook] Stale event skipped type=%s user=%s", event.type, event.userId);
       }
     }
 
@@ -200,7 +216,7 @@ export async function POST(req: NextRequest) {
       current_period_start: event.currentPeriodStart.toISOString(),
       current_period_end: event.currentPeriodEnd.toISOString(),
       cancel_at_period_end: event.cancelAtPeriodEnd,
-      occurred_at: now,
+      occurred_at: occurredAt,
       raw_event: serializeEvent(event),
     });
     if (recorded.error) {

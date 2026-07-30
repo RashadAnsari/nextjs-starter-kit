@@ -107,6 +107,60 @@ export class SubscriptionRepository {
   }
 
   /**
+   * Apply a provider webhook snapshot. Unlike upsert, the update only wins
+   * when the incoming event is not older than the last applied one
+   * (last_event_at), so a delayed retry of an earlier event cannot overwrite
+   * newer state, e.g. resurrect access after a cancellation. Returns whether
+   * the snapshot was applied; false means the event was stale and skipped.
+   */
+  async applyProviderEvent(row: SubscriptionUpsert, occurredAt: string) {
+    const { data, error } = await runWrite(() =>
+      this.db.query(
+        `insert into subscriptions
+           (user_id, plan_id, status, payment_provider, provider_customer_id,
+            provider_subscription_id, current_period_start, current_period_end,
+            cancel_at_period_end, updated_at, last_event_at)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+         on conflict (user_id) do update set
+           plan_id = excluded.plan_id,
+           status = excluded.status,
+           payment_provider = excluded.payment_provider,
+           provider_customer_id = excluded.provider_customer_id,
+           provider_subscription_id = excluded.provider_subscription_id,
+           current_period_start = excluded.current_period_start,
+           current_period_end = excluded.current_period_end,
+           cancel_at_period_end = excluded.cancel_at_period_end,
+           updated_at = excluded.updated_at,
+           last_event_at = excluded.last_event_at
+         where subscriptions.last_event_at is null
+            or subscriptions.last_event_at <= excluded.last_event_at`,
+        [...UPSERT_VALUES(row), occurredAt]
+      )
+    );
+    return { applied: (data?.rowCount ?? 0) > 0, error };
+  }
+
+  /**
+   * Mark a subscription past_due after a failed payment, without touching the
+   * period dates. Skipped for cancelled or expired rows (a late failure event
+   * must not re-grant the access that past_due status carries) and for events
+   * older than the last applied one. Returns whether a row was updated.
+   */
+  async markPastDue(userId: string, updatedAt: string, occurredAt: string) {
+    const { data, error } = await runWrite(() =>
+      this.db.query(
+        `update subscriptions
+            set status = 'past_due', updated_at = $2, last_event_at = $3
+          where user_id = $1
+            and status not in ('cancelled', 'expired')
+            and (last_event_at is null or last_event_at <= $3)`,
+        [userId, updatedAt, occurredAt]
+      )
+    );
+    return { applied: (data?.rowCount ?? 0) > 0, error };
+  }
+
+  /**
    * Insert a subscription only if the user has none yet. Returns whether a row
    * was newly created (false when one already existed). Idempotent via the
    * unique index on user_id.

@@ -39,6 +39,12 @@ export interface WebhookEvent {
   currentPeriodStart: Date;
   currentPeriodEnd: Date;
   cancelAtPeriodEnd: boolean;
+  /**
+   * When the event happened at the provider. Deliveries are retried and not
+   * ordered, so the webhook handler uses this to skip events older than the
+   * last one it applied.
+   */
+  occurredAt: Date;
 }
 
 export interface ProviderPayment {
