@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
 import { NextRequest } from "next/server";
 import type { PaymentProvider, WebhookEvent } from "@/lib/payment/types";
+import { StubPool } from "../../../../../test/stubPool";
 
 /**
  * Route-level tests with a scripted pool and a fake provider. They pin the
@@ -9,44 +10,6 @@ import type { PaymentProvider, WebhookEvent } from "@/lib/payment/types";
  * refund path must cancel at the provider. SQL semantics (the conditional
  * upsert, the claim insert) live in Postgres and are not provable here.
  */
-
-interface QueryOutcome {
-  rowCount: number;
-  rows: unknown[];
-}
-
-class StubPool {
-  calls: { sql: string; params: unknown[] }[] = [];
-  private handlers: [RegExp, (params: unknown[]) => QueryOutcome | Error][] = [];
-
-  /** Script the outcome for queries matching the pattern. */
-  on(pattern: RegExp, handler: (params: unknown[]) => QueryOutcome | Error) {
-    this.handlers.push([pattern, handler]);
-  }
-
-  reset() {
-    this.calls = [];
-    this.handlers = [];
-  }
-
-  matched(pattern: RegExp) {
-    return this.calls.filter((c) => pattern.test(c.sql));
-  }
-
-  async query(sql: string, params: unknown[] = []): Promise<QueryOutcome> {
-    this.calls.push({ sql, params });
-    for (const [pattern, handler] of this.handlers) {
-      if (pattern.test(sql)) {
-        const outcome = handler(params);
-        if (outcome instanceof Error) {
-          throw outcome;
-        }
-        return outcome;
-      }
-    }
-    return { rowCount: 1, rows: [] };
-  }
-}
 
 const CLAIM = /insert into processed_webhook_events/;
 const RELEASE = /delete from processed_webhook_events/;

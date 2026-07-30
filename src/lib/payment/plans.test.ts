@@ -1,5 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import { hasPremiumAccess, isTrialEligible, NO_SUBSCRIPTION, type UserSubscription } from "./plans";
+import {
+  hasPremiumAccess,
+  isPlanId,
+  isTrialEligible,
+  NO_SUBSCRIPTION,
+  PLAN_IDS,
+  type UserSubscription,
+} from "./plans";
 
 const FUTURE = new Date(Date.now() + 24 * 60 * 60 * 1000);
 const PAST = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -81,5 +88,21 @@ describe("isTrialEligible", () => {
 
   test("not eligible once any subscription exists, even a cancelled one", () => {
     expect(isTrialEligible(sub({ planId: "monthly", status: "cancelled" }))).toBe(false);
+  });
+});
+
+describe("isPlanId", () => {
+  test("accepts every offered plan", () => {
+    for (const planId of PLAN_IDS) {
+      expect(isPlanId(planId)).toBe(true);
+    }
+  });
+
+  test("rejects anything else the checkout route might be handed", () => {
+    // The value reaches this straight from a request body, so non-strings have
+    // to be rejected as firmly as unknown plan names.
+    for (const value of ["enterprise", "", null, undefined, 1, {}, ["monthly"]]) {
+      expect(isPlanId(value)).toBe(false);
+    }
   });
 });
