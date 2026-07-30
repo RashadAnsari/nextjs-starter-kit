@@ -1,3 +1,7 @@
+# The test target collides with the test/ directory, which make would
+# otherwise consider up to date and silently skip.
+.PHONY: test
+
 # ---------- Development ----------
 
 up:
