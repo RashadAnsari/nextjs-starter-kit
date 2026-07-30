@@ -11,7 +11,7 @@ export const CONSENT_STORAGE_KEY = "cookie-consent";
 // Fired whenever the stored choice changes, so mounted components re-read it.
 export const CONSENT_CHANGE_EVENT = "app:consent-change";
 
-// Fired to re-open the banner from the footer "Cookie preferences" link.
+// Fired to re-open the banner from the footer "Cookie Preferences" link.
 export const OPEN_CONSENT_EVENT = "app:open-consent";
 
 export function readConsent(): ConsentValue | null {

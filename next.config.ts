@@ -68,7 +68,10 @@ const nextConfig: NextConfig = {
   // redeploy and trigger a full page reload instead of failing on mismatched
   // Server Action IDs.
   generateBuildId: async () => process.env.GIT_SHA ?? "development",
-  // Keep native addons out of the webpack bundle so Node can require them at runtime.
+  // Pinned explicitly, though Next.js already externalises `pg` by default: the
+  // driver must stay outside the Server Components bundle and be required by
+  // Node at runtime. Listing it here means a change to that default list cannot
+  // silently break the connection pool.
   serverExternalPackages: ["pg"],
   // Vars that must reach the client bundle. Next.js substitutes these at build
   // time, which has two consequences worth knowing before adding one.

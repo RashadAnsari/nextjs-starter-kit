@@ -1,6 +1,5 @@
-# The test target collides with the test/ directory, which make would
-# otherwise consider up to date and silently skip.
-.PHONY: test
+# Makefile for development and code quality tasks
+.PHONY: up down migrate db-shell dev local lint format typecheck test
 
 # ---------- Development ----------
 

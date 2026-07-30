@@ -8,7 +8,7 @@ on:
 
 jobs:
   check:
-    name: Lint, typecheck, build
+    name: Lint, typecheck, test, build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -65,9 +65,10 @@ jobs:
             GIT_SHA=${{ github.sha }}
             ANALYTICS_GA_MEASUREMENT_ID=${{ secrets.ANALYTICS_GA_MEASUREMENT_ID }}
 
-  # Uncomment once deploy/inventory is pointed at your own server and the
-  # secrets below exist in the repository. Run the Infra workflow once first:
-  # it creates the Docker network and the Postgres this stack joins.
+  # Uncomment once the inventory below names your own server (replace
+  # YOUR.SERVER.IP) and the secrets it reads exist in the repository. Run the
+  # Infra workflow once first: it creates the Docker network and the Postgres
+  # this stack joins.
   #
   # It rebuilds the image rather than reusing the one above, so the job is
   # self-contained; the cache makes the second build cheap. If you would rather
