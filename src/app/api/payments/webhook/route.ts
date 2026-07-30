@@ -90,11 +90,23 @@ export async function POST(req: NextRequest) {
   // Idempotency guard: the key is a hash of the raw, signature-verified body, so
   // a provider retry or a replayed captured request is processed only once. This
   // stops a replayed older event from resurrecting or extending access.
+  //
+  // The key is claimed atomically before processing, so two concurrent
+  // deliveries of the same event cannot both run the side effects. Every
+  // failure path releases the claim so the provider retry is reprocessed; the
+  // remaining trade-off is a hard crash mid-processing, which leaves the event
+  // claimed and its retries deduped away.
   const eventKey = createHash("sha256").update(rawBody).digest("hex");
-  if (await processed.isProcessed(eventKey)) {
+  if (!(await processed.claim(eventKey, event.type))) {
     console.info("[webhook] Duplicate event ignored type=%s", event.type);
     return NextResponse.json({ ok: true });
   }
+
+  /** Answer 500 after releasing the claim, so the provider retry reprocesses. */
+  const fail = async () => {
+    await processed.release(eventKey);
+    return NextResponse.json({ error: "Processing failed" }, { status: 500 });
+  };
 
   try {
     if (event.type === "subscription.refunded") {
@@ -105,7 +117,6 @@ export async function POST(req: NextRequest) {
           "[webhook] Refund for unknown subscriptionId=%s, skipping",
           event.providerSubscriptionId
         );
-        await processed.markProcessed(eventKey, event.type);
         return NextResponse.json({ ok: true });
       }
 
@@ -129,12 +140,10 @@ export async function POST(req: NextRequest) {
         raw_event: serializeEvent(event),
       });
       if (recorded.error) {
-        // record() logged the failure. Return 500 without marking the event
-        // processed, so the provider retry can write the missing audit row.
-        return NextResponse.json({ error: "Processing failed" }, { status: 500 });
+        // record() logged the failure; retry to write the missing audit row.
+        return fail();
       }
 
-      await processed.markProcessed(eventKey, event.type);
       console.info(
         "[webhook] Refund processed, subscription cancelled for subscriptionId=%s",
         event.providerSubscriptionId
@@ -159,7 +168,7 @@ export async function POST(req: NextRequest) {
           event.userId,
           error
         );
-        return NextResponse.json({ error: "Processing failed" }, { status: 500 });
+        return fail();
       }
     } else {
       const { error } = await subscriptions.upsert({
@@ -176,7 +185,7 @@ export async function POST(req: NextRequest) {
       });
       if (error) {
         console.error("[webhook] Upsert failed type=%s user=%s:", event.type, event.userId, error);
-        return NextResponse.json({ error: "Processing failed" }, { status: 500 });
+        return fail();
       }
     }
 
@@ -195,20 +204,16 @@ export async function POST(req: NextRequest) {
       raw_event: serializeEvent(event),
     });
     if (recorded.error) {
-      // record() logged the failure. Return 500 without marking the event
-      // processed, so the provider retry can write the missing audit row.
-      return NextResponse.json({ error: "Processing failed" }, { status: 500 });
+      // record() logged the failure; retry to write the missing audit row.
+      return fail();
     }
   } catch (err) {
     // Reached by the calls that do throw: the subscription lookup and the
     // provider cancel API on the refund path.
     console.error("[webhook] Processing failed type=%s:", event.type, err);
-    // Return 500 so the provider retries. The event is not marked processed, so
-    // the retry is reprocessed rather than deduped away.
-    return NextResponse.json({ error: "Processing failed" }, { status: 500 });
+    return fail();
   }
 
-  await processed.markProcessed(eventKey, event.type);
   console.info("[webhook] Processed type=%s userId=%s", event.type, event.userId);
   return NextResponse.json({ ok: true });
 }
