@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
+    "test": "bun test",
     "prepare": "husky",
     "migrate": "bun scripts/migrate.ts",
     "grant-subscription": "bun scripts/grant-subscription.ts"
@@ -33,6 +34,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",
+    "@types/bun": "1.3.14",
     "@types/node": "^26.1.2",
     "@types/nodemailer": "^8.0.1",
     "@types/pg": "^8.20.0",

@@ -51,7 +51,8 @@ This is Next.js 16, which has breaking changes: APIs, conventions, and file stru
 
 ## Verification
 
-- After every change, run `make local` (format, lint, typecheck) and fix anything it reports before considering the work done.
+- After every change, run `make local` (format, lint, typecheck, tests) and fix anything it reports before considering the work done.
+- Tests run with `bun test`. Pure logic (access rules, redirect validation, upload keys) is tested directly; route handlers are tested with a stub pool and a fake provider, see `src/app/api/payments/webhook/route.test.ts`. `test/setup.ts` neutralises `server-only` for the test runtime.
 
 ## General rules
 

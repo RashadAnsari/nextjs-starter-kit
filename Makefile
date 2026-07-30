@@ -17,7 +17,7 @@ dev:
 
 # --------- Code quality ----------
 
-local: format lint typecheck
+local: format lint typecheck test
 
 lint:
 	bun run lint
@@ -29,3 +29,6 @@ format:
 
 typecheck:
 	bun run typecheck
+
+test:
+	bun test
