@@ -20,17 +20,20 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      # The same targets `make local` runs, kept as separate steps so a failure
+      # names itself in the job summary. `make local` itself is not used here:
+      # it starts with `format`, which rewrites files rather than checking them.
       - name: Lint
         run: make lint
 
       - name: Typecheck
-        run: bun run typecheck
+        run: make typecheck
 
       - name: Test
-        run: bun test
+        run: make test
 
       - name: Build
-        run: bun run build
+        run: make build
 
   # Builds the production image without publishing or deploying it, so a change
   # that breaks the Dockerfile fails here rather than at deploy time. The layer

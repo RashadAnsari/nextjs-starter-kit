@@ -6,6 +6,7 @@ A complete, self-hosted SaaS foundation: authentication, Postgres, transactional
 
 [![Build](https://github.com/RashadAnsari/nextjs-starter-kit/actions/workflows/build.yml/badge.svg)](https://github.com/RashadAnsari/nextjs-starter-kit/actions/workflows/build.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](LICENSE)
+![Coverage](https://img.shields.io/badge/coverage-89%25-black)
 ![Next.js 16](https://img.shields.io/badge/Next.js-16-black?logo=next.js&logoColor=white)
 ![React 19](https://img.shields.io/badge/React-19-black?logo=react)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-black?logo=typescript&logoColor=white)
@@ -30,7 +31,7 @@ This one is neither.
 - **No vendor lock-in.** Postgres over the plain `pg` driver, S3-compatible storage, any SMTP relay, and a billing interface with one provider implemented behind it. Every piece is swappable because nothing is welded to a platform SDK.
 - **It deploys to your own server.** A Docker build, GitHub Actions, and Ansible playbooks put the app and its database on a machine you control, with automated backups to object storage. No per-seat platform bill that grows with your success.
 - **You can read all of it.** Plain Next.js, plain SQL, and a thin repository layer. No generated code, no hidden framework, and few enough lines to review end to end in an afternoon.
-- **The security details are already right.** Webhook replay protection, redirect validation, per-user storage prefixes, a real CSP, and consent-gated analytics. These are the parts that are easy to get subtly wrong and expensive to discover late.
+- **The security details are already right.** Webhook replay protection, redirect validation, per-user storage prefixes, a real CSP, and consent-gated analytics. These are the parts that are easy to get subtly wrong and expensive to discover late, so there is a [test suite](#testing) holding them in place.
 
 ### Who it is for
 
@@ -40,7 +41,7 @@ Someone starting a subscription product who wants to own their infrastructure, a
 
 ## Contents
 
-[What's inside](#whats-inside) · [Quick start](#quick-start) · [Make it yours](#make-it-yours) · [Project layout](#project-layout) · [How the pieces work](#how-the-pieces-work) · [Deployment](#deployment) · [Commands](#commands)
+[What's inside](#whats-inside) · [Quick start](#quick-start) · [Make it yours](#make-it-yours) · [Project layout](#project-layout) · [How the pieces work](#how-the-pieces-work) · [Testing](#testing) · [Deployment](#deployment) · [Commands](#commands)
 
 ## What's inside
 
@@ -55,6 +56,7 @@ Someone starting a subscription product who wants to own their infrastructure, a
 | **Analytics** | Google Analytics 4 that loads only after consent, plus a GDPR-compliant consent banner                           |
 | **Security**  | CSP and security headers, safe post-auth redirects, webhook idempotency                                          |
 | **Pages**     | Landing, pricing, dashboard, settings, auth flows, 404, and privacy/terms/refund policies                        |
+| **Tests**     | 92 tests over the money and access paths, run by `make test` and in CI                                           |
 | **Ops**       | Docker build, GitHub Actions, Ansible playbooks, automated database backups to object storage                    |
 
 ## Quick start
@@ -115,8 +117,11 @@ src/
   proxy.ts             route protection (Next.js 16's replacement for middleware.ts)
 db/migrations/         numbered SQL files, applied in filename order
 scripts/               migration runner and admin scripts
+test/                  test setup and the scripted pool stand-in
 deploy/                Ansible playbooks and compose templates for production
 ```
+
+Tests live next to what they cover, as `*.test.ts` beside the module or route handler.
 
 ## How the pieces work
 
@@ -228,6 +233,29 @@ Two things to know before choosing:
 
 Mixing the two is fine. A common split is a designed `opengraph-image.png` in `src/app/` alongside a generated favicon, or a full icon set in `public/` while the social card stays generated.
 
+## Testing
+
+`make test` runs 92 tests in about a tenth of a second, with no database and no network. `make local` runs them alongside format, lint, and typecheck. CI calls the same targets on every push and pull request, so a green run locally is a green run there.
+
+The suite covers **89% of lines and 91% of functions** in the modules it exercises. `make coverage` prints the table. Read that number for what it is: Bun measures only files the tests import, so it describes the payment, repository, redirect, and route-protection modules rather than the whole tree. Pages and React components are not counted, and not tested.
+
+That is deliberate. This is a template, so the tests cover what every app built on it inherits and would be expensive to get subtly wrong:
+
+| Area             | What is pinned                                                                                                       |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Route protection | An unlisted path redirects to login rather than falling through; guest-only pages ignore a hostile or looping `next` |
+| Redirects        | `safeNextPath` rejects absolute, protocol-relative, backslash, and non-http targets                                  |
+| Access rules     | `hasPremiumAccess` across manual grants, the renewal window, and every provider status                               |
+| Checkout         | A returning customer cannot claim a second trial, and a user with access cannot buy twice                            |
+| Cancellation     | A trial ends now, a paid plan runs to the period end, and a provider failure leaves the row alone                    |
+| Webhooks         | Replays are deduplicated, stale events are skipped, and every write failure releases the claim so the retry lands    |
+| SQL safety       | The column allowlist on `updateByUserId`, the one query not built purely from bound parameters                       |
+| Storage keys     | Object keys are namespaced by user id and a crafted filename cannot climb out of the prefix                          |
+
+What is not covered is as deliberate. Provider signature verification in `paddle.ts` is stubbed, because proving it needs a genuine signed fixture from a provider you may well replace. The upload route is a worked example, so only its key-building helper is tested, not its size and content-type limits. Anything that depends on real SQL semantics, such as the conditional upsert and the idempotency claim insert, has to be proven against a live database instead.
+
+Route handlers are tested against `test/stubPool.ts`, a scripted stand-in for the connection pool that records every statement and can force a driver error on any one of them. Pure logic is tested directly. See `src/app/api/payments/webhook/route.test.ts` for the pattern to copy.
+
 ## Deployment
 
 The app and the infrastructure it depends on are two independent compose stacks on the same host, each with its own playbook, so redeploying the app never restarts Postgres.
@@ -266,15 +294,17 @@ Stop the app stack first so nothing writes during the restore. Rehearse this at 
 
 ## Commands
 
-| Command         | What it does                                         |
-| --------------- | ---------------------------------------------------- |
-| `make dev`      | Start the dev server                                 |
-| `make up`       | Start the local Postgres container                   |
-| `make down`     | Stop it                                              |
-| `make migrate`  | Apply pending migrations                             |
-| `make db-shell` | Open `psql` against the local database               |
-| `make local`    | Format, lint, and typecheck: run before every commit |
-| `bun run build` | Production build                                     |
+| Command         | What it does                                           |
+| --------------- | ------------------------------------------------------ |
+| `make dev`      | Start the dev server                                   |
+| `make up`       | Start the local Postgres container                     |
+| `make down`     | Stop it                                                |
+| `make migrate`  | Apply pending migrations                               |
+| `make db-shell` | Open `psql` against the local database                 |
+| `make test`     | Run the test suite                                     |
+| `make coverage` | Run it with a coverage table                           |
+| `make local`    | Format, lint, typecheck, test: run before every commit |
+| `make build`    | Production build                                       |
 
 `bun scripts/grant-subscription.ts <userId> [months]` grants access manually, with no payment provider behind it. Useful for team accounts and support gestures.
 

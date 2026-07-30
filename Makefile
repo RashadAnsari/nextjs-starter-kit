@@ -1,5 +1,9 @@
-# Makefile for development and code quality tasks
-.PHONY: up down migrate db-shell dev local lint format typecheck test
+# CI runs these same targets, so a check that passes locally passes there too.
+#
+# Every target is phony: `test` and `build` would otherwise collide with the
+# test/ directory and the build output, which make would consider up to date
+# and silently skip.
+.PHONY: up down migrate db-shell dev local lint format typecheck test coverage build
 
 # ---------- Development ----------
 
@@ -18,6 +22,9 @@ db-shell:
 dev:
 	bun run dev
 
+build:
+	bun run build
+
 # --------- Code quality ----------
 
 local: format lint typecheck test
@@ -35,3 +42,6 @@ typecheck:
 
 test:
 	bun test
+
+coverage:
+	bun test --coverage

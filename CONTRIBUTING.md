@@ -19,11 +19,11 @@ Thanks for taking the time. This is a starter kit, so the bar for what belongs h
 
 ```bash
 bun install
-make local        # format, lint, typecheck
-bun run build
+make local        # format, lint, typecheck, test
+make build
 ```
 
-All four must pass. `make local` also formats, so run it rather than fighting the formatter.
+All five must pass. CI runs the same targets, so a green run here is a green run there. `make local` also formats, so run it rather than fighting the formatter.
 
 Read `AGENTS.md` first. It carries the conventions this codebase actually follows: where SQL lives, how forms report errors, why some modules are server-only, and what must never be trusted from a request. A change that ignores those will get review comments about them.
 

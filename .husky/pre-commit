@@ -1,4 +1,4 @@
 # Typecheck as well as lint: eslint does not catch type errors, so without this
 # a commit that fails CI still lands cleanly on the branch.
 make lint
-bun run typecheck
+make typecheck
