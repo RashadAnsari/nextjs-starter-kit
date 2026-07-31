@@ -107,6 +107,8 @@ Three details worth understanding before you change anything here:
 
 `hasPremiumAccess()` in `plans.ts` is the single access gate. Call it from every server route that serves paid content.
 
+**Before a provider is configured, access is complimentary.** With `PAYMENT_PROVIDER` unset, `grantComplimentaryAccess()` gives each account `COMPLIMENTARY_ACCESS_MONTHS` of a provider-less subscription, so the app works end to end before billing exists. Free access is never handed out silently: whichever path grants it, the user lands on the dashboard and `WelcomeGiftModal` tells them how long they have, that there is no charge, and that it will not become a paid plan. There are two such paths, and both feed the same modal. The dashboard grants on first visit and shows it when its own call reports `granted`; the pricing CTA grants through `/api/payments/complimentary` and redirects to `WELCOME_GIFT_REDIRECT`, because by then the row exists and the dashboard's call reports nothing. Setting `PAYMENT_PROVIDER` turns the grant into a no-op, and the modal with it.
+
 To receive webhooks against a local dev server, expose it through a tunnel and set `DEV_TUNNEL_HOST` to the tunnel host, which adds it to `allowedDevOrigins`:
 
 ```bash

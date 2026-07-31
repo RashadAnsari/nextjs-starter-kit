@@ -16,6 +16,8 @@ interface ButtonProps extends BaseProps {
   type?: "button" | "submit" | "reset";
   disabled?: boolean;
   onClick?: React.MouseEventHandler<HTMLButtonElement>;
+  /** For callers that have to take focus on mount, such as a dialog on open. */
+  autoFocus?: boolean;
 }
 
 interface LinkButtonProps extends BaseProps {
@@ -75,6 +77,7 @@ export function Button(props: Props) {
   return (
     <button
       type={props.type ?? "button"}
+      autoFocus={props.autoFocus}
       disabled={props.disabled}
       onClick={props.onClick}
       className={classes}

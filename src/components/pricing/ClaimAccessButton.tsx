@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import { WELCOME_GIFT_REDIRECT } from "@/components/ui/WelcomeGiftModal";
 import { withNext } from "@/lib/redirects";
 
 interface Props {
@@ -16,7 +17,7 @@ interface Props {
 /**
  * Claims complimentary access, which is what the pricing CTA does while no
  * payment provider is configured. It grants access server-side and moves the
- * visitor to the dashboard.
+ * visitor to the dashboard, where the welcome gift modal explains what they got.
  *
  * When the grant cannot be made, for example because the account already has a
  * subscription row, the same button falls back to the contact link rather than
@@ -45,7 +46,7 @@ export function ClaimAccessButton({
 
       const data = await res.json();
       if (res.ok && data.granted) {
-        router.push("/dashboard");
+        router.push(WELCOME_GIFT_REDIRECT);
         return;
       }
 

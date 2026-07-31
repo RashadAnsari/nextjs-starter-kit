@@ -3,12 +3,15 @@ import { getSessionUser } from "@/lib/auth-session";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/Button";
+import { WelcomeGiftModal } from "@/components/ui/WelcomeGiftModal";
 import { getUserSubscription, grantComplimentaryAccess } from "@/lib/payment/subscription";
-import { hasPremiumAccess, PLAN_LABEL } from "@/lib/payment/plans";
+import { COMPLIMENTARY_ACCESS_MONTHS, hasPremiumAccess, PLAN_LABEL } from "@/lib/payment/plans";
 
 export const metadata = { title: "Dashboard" };
 
-export default async function DashboardPage() {
+export default async function DashboardPage(props: {
+  searchParams: Promise<{ welcome?: string }>;
+}) {
   // The proxy already bounced anonymous visitors, but it only checks that a
   // session cookie exists. This is the check that actually enforces access, and
   // it is required of every protected page: see AGENTS.md.
@@ -19,7 +22,13 @@ export default async function DashboardPage() {
 
   // No-op once a payment provider is configured; before then it gives new
   // accounts a working, time-limited plan.
-  await grantComplimentaryAccess(user.id);
+  const { granted } = await grantComplimentaryAccess(user.id);
+
+  // Free access is never handed out silently. Either this page just granted it,
+  // or the pricing CTA did and sent the user here with the flag, since the call
+  // above reports nothing once the row exists.
+  const { welcome } = await props.searchParams;
+  const showWelcomeGift = granted || welcome === "1";
 
   const subscription = await getUserSubscription(user.id);
   const hasAccess = hasPremiumAccess(subscription);
@@ -90,6 +99,8 @@ export default async function DashboardPage() {
       </main>
 
       <Footer />
+
+      {showWelcomeGift && <WelcomeGiftModal months={COMPLIMENTARY_ACCESS_MONTHS} />}
     </div>
   );
 }
