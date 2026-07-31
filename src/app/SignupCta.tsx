@@ -3,25 +3,22 @@
 import { Button } from "@/components/ui/Button";
 import { authClient } from "@/lib/auth-client";
 
-/**
- * A call to action that invites a visitor to sign up, and sends them to the
- * dashboard instead once they have. Pointing a signed-in visitor at
- * /auth/signup does not show them the signup page, because that page turns
- * them away again, so the button would silently do something other than what
- * its label says.
- *
- * The session is read in the browser, as the navbar does, so the page holding
- * this stays static. While it loads, the signed-out label is the safe guess:
- * most visitors to a landing page are signed out.
- */
 interface Props {
   children: React.ReactNode;
-  /** Label once the visitor is signed in, when the button leads to the dashboard. */
+  /** Label once signed in, when the button leads to the dashboard instead. */
   signedInLabel: React.ReactNode;
   variant?: React.ComponentProps<typeof Button>["variant"];
   size?: React.ComponentProps<typeof Button>["size"];
 }
 
+/**
+ * Invites a visitor to sign up, and points at the dashboard once they have:
+ * a signed-in visitor sent to /auth/signup is turned away by that page, so the
+ * button would do something other than what its label says.
+ *
+ * The session is read in the browser, as the navbar does, so the page holding
+ * this stays static. Until it resolves, signed out is the safe guess.
+ */
 export function SignupCta({ children, signedInLabel, variant, size }: Props) {
   const { data: session } = authClient.useSession();
 

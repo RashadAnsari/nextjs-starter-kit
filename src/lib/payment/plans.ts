@@ -54,22 +54,14 @@ export const NO_SUBSCRIPTION: UserSubscription = {
  * Whether the user may access paid features. This is the single gate: call it
  * from every server route and page that serves paid content.
  *
- * Manually granted subscriptions (no payment provider, e.g. from
- * scripts/grant-subscription.ts) have no provider to update their status when
- * the period ends, so current_period_end is the sole authority: access lasts
- * only until that date.
+ * A manual grant has no provider to expire it, so current_period_end is the
+ * sole authority. A provider-backed subscription is judged on status instead,
+ * which webhooks keep in sync: trialing, active, and past_due all allow, and
+ * so does a cancellation the user has already paid through.
  *
- * For provider-backed subscriptions we trust the status, which the provider
- * keeps in sync via webhooks:
- * - trialing, active: allow
- * - past_due: allow, the provider is still retrying payment; revoke on expiry
- * - cancelled but still inside the paid period: allow, the user paid through it
- * - expired, or no subscription at all: deny
- *
- * current_period_end is deliberately NOT enforced for an active provider-backed
- * subscription: that would falsely deny access during the renewal window, after
- * the period ends but before the renewal webhook arrives. A trial cancelled
- * immediately has current_period_end set to now, so it falls through to denied.
+ * current_period_end is deliberately NOT enforced for a provider-backed
+ * subscription. That would deny access during the renewal window, after the
+ * period ends but before the renewal webhook lands.
  */
 export function hasPremiumAccess(sub: UserSubscription): boolean {
   if (sub.planId === null) {

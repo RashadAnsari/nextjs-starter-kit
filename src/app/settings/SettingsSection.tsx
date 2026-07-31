@@ -1,4 +1,3 @@
-/** One card on the settings page. */
 export function SettingsSection({
   title,
   description,

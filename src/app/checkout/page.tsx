@@ -10,18 +10,12 @@ export const metadata: Metadata = {
 };
 
 /**
- * Paddle's default payment link points here.
- *
- * Paddle Billing does not host the checkout page itself: creating a transaction
- * returns `{your default payment link}?_ptxn={transaction id}`, so this route
- * has to exist on your own domain and open the overlay for that transaction.
- * Set the default payment link in the Paddle dashboard, under Checkout
- * settings, to https://yourdomain.com/checkout, or checkout will redirect
- * customers to a page that does not exist.
- *
- * The client token is read here on the server and handed down as a prop. It is
- * public by design, but it does not need to be inlined into every page's bundle
- * to reach the one component that uses it.
+ * Paddle's default payment link points here. Paddle Billing does not host the
+ * checkout page itself: creating a transaction returns
+ * `{your default payment link}?_ptxn={transaction id}`, so this route has to
+ * exist on your own domain and open the overlay for that transaction. Set that
+ * link in the Paddle dashboard, or checkout sends customers to a page that
+ * does not exist.
  */
 export default async function CheckoutPage(props: { searchParams: Promise<{ _ptxn?: string }> }) {
   const { _ptxn } = await props.searchParams;
@@ -29,15 +23,17 @@ export default async function CheckoutPage(props: { searchParams: Promise<{ _ptx
     redirect("/pricing");
   }
 
-  // The proxy already bounced anonymous visitors, but it only checks that a
-  // session cookie exists. This is the check that actually enforces access, and
-  // it is required of every protected page: see AGENTS.md. Carry the Paddle
-  // transaction id through login so the overlay reopens afterwards.
+  // The proxy only checks that a session cookie exists, so this is the check
+  // that actually enforces access. The transaction id rides through login so
+  // the overlay reopens afterwards.
   const user = await getSessionUser();
   if (!user) {
     redirect(withNext("/auth/login", `/checkout?_ptxn=${encodeURIComponent(_ptxn)}`));
   }
 
+  // Read here rather than inlined via next.config.ts: the token is public by
+  // design, but only one component needs it, and reading it server-side keeps
+  // it out of every page's bundle and runtime-configurable.
   const token = process.env.PADDLE_CLIENT_TOKEN;
   if (!token) {
     console.error("[checkout] PADDLE_CLIENT_TOKEN is not set, cannot open the overlay");

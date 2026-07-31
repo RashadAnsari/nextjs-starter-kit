@@ -4,9 +4,27 @@ How this starter kit is put together: what to change to make it yours, how each
 piece works and why it works that way, and how to test and deploy it. The
 [README](../README.md) covers what it is and how to get it running.
 
-## Contents
+## Table of contents
 
-[Make it yours](#make-it-yours) · [Project layout](#project-layout) · [How the pieces work](#how-the-pieces-work) · [Testing](#testing) · [Deployment](#deployment) · [Commands](#commands) · [Notes on versions](#notes-on-versions)
+- [Make it yours](#make-it-yours)
+- [Project layout](#project-layout)
+- [How the pieces work](#how-the-pieces-work)
+  - [Authentication](#authentication)
+  - [Database](#database)
+  - [Email](#email)
+  - [Error boundaries](#error-boundaries)
+  - [SEO](#seo)
+  - [Payments](#payments)
+  - [Object storage](#object-storage)
+  - [Analytics and consent](#analytics-and-consent)
+  - [Environment variables, and when they are read](#environment-variables-and-when-they-are-read)
+  - [Security headers](#security-headers)
+  - [Replacing the generated assets](#replacing-the-generated-assets)
+- [Testing](#testing)
+- [Deployment](#deployment)
+  - [Backups](#backups)
+- [Commands](#commands)
+- [Notes on versions](#notes-on-versions)
 
 ## Make it yours
 
@@ -105,9 +123,11 @@ Three details worth understanding before you change anything here:
 - **Webhooks are deduplicated.** A hash of the raw verified body is stored in `processed_webhook_events`. Signature verification proves authenticity but not freshness, so without this a replayed older event could resurrect cancelled access.
 - **The client token is read on the server.** `/checkout` reads `PADDLE_CLIENT_TOKEN` and passes it down as a prop. It is public by design, so inlining it would be safe, but it is only needed by one component and does not belong in every page's bundle.
 
-`hasPremiumAccess()` in `plans.ts` is the single access gate. Call it from every server route that serves paid content.
+**Before a provider is configured, access is complimentary.** With `PAYMENT_PROVIDER` unset, `grantComplimentaryAccess()` gives each account `COMPLIMENTARY_ACCESS_MONTHS` of a provider-less subscription, so the app works end to end before billing exists. Setting the variable turns it into a no-op.
 
-**Before a provider is configured, access is complimentary.** With `PAYMENT_PROVIDER` unset, `grantComplimentaryAccess()` gives each account `COMPLIMENTARY_ACCESS_MONTHS` of a provider-less subscription, so the app works end to end before billing exists. Free access is never handed out silently: whichever path grants it, the user lands on the dashboard and `WelcomeGiftModal` tells them how long they have, that there is no charge, and that it will not become a paid plan. There are two such paths, and both feed the same modal. The dashboard grants on first visit and shows it when its own call reports `granted`; the pricing CTA grants through `/api/payments/complimentary` and redirects to `WELCOME_GIFT_REDIRECT`, because by then the row exists and the dashboard's call reports nothing. Setting `PAYMENT_PROVIDER` turns the grant into a no-op, and the modal with it.
+Free access is never handed out silently. Two paths grant it, the dashboard on first visit and the pricing CTA through `/api/payments/complimentary`, and both land on the dashboard showing `WelcomeGiftModal`: how long the user has, that there is no charge, and that it will not become a paid plan. The second path needs the redirect flag because the row already exists by the time it arrives, so the dashboard's own grant reports nothing.
+
+`hasPremiumAccess()` in `plans.ts` is the single access gate. Call it from every server route that serves paid content.
 
 To receive webhooks against a local dev server, expose it through a tunnel and set `DEV_TUNNEL_HOST` to the tunnel host, which adds it to `allowedDevOrigins`:
 

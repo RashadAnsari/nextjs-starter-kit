@@ -20,7 +20,6 @@ const SIGNATURE_HEADERS = [
   // { header: "stripe-signature", provider: "stripe" },
 ] as const;
 
-/** The provider that signed this request, and the signature it sent. */
 function detectProvider(req: NextRequest) {
   for (const { header, provider } of SIGNATURE_HEADERS) {
     const signature = req.headers.get(header);
@@ -89,15 +88,11 @@ export async function POST(req: NextRequest) {
   const now = new Date().toISOString();
   const occurredAt = event.occurredAt.toISOString();
 
-  // Idempotency guard: the key is a hash of the raw, signature-verified body, so
-  // a provider retry or a replayed captured request is processed only once. This
-  // stops a replayed older event from resurrecting or extending access.
-  //
-  // The key is claimed atomically before processing, so two concurrent
-  // deliveries of the same event cannot both run the side effects. Every
-  // failure path releases the claim so the provider retry is reprocessed; the
-  // remaining trade-off is a hard crash mid-processing, which leaves the event
-  // claimed and its retries deduped away.
+  // Idempotency guard keyed on a hash of the verified body, so a retry or a
+  // replayed capture runs once and cannot resurrect access. The claim is taken
+  // before processing, so concurrent deliveries cannot both run the side
+  // effects, and every failure path releases it so the retry is reprocessed. A
+  // hard crash mid-processing is the one case that stays claimed.
   const eventKey = createHash("sha256").update(rawBody).digest("hex");
   if (!(await processed.claim(eventKey, event.type))) {
     console.info("[webhook] Duplicate event ignored type=%s", event.type);
@@ -153,15 +148,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    // Repository writes never throw: runWrite converts driver errors into the
-    // returned { error } shape, so each result must be checked explicitly. A
-    // swallowed failure here would answer 200 and lose the state change for
-    // good, e.g. a paying customer who never receives access.
-    //
-    // Both writes carry the provider's event time and are skipped when a newer
-    // event has already been applied: deliveries are retried and not ordered,
-    // so a delayed older event must not overwrite newer state. Skipped events
-    // are still recorded in the history below.
+    // Repository writes never throw, so every result is checked by hand: a
+    // swallowed failure would answer 200 and lose the state change for good.
+    // Both writes carry the provider's event time and skip events older than
+    // the last applied one, since deliveries are retried and not ordered.
+    // Skipped events are still recorded in the history below.
     if (event.type === "payment.failed") {
       // Only update the status: do not overwrite the period dates.
       const { applied, error } = await subscriptions.markPastDue(event.userId, now, occurredAt);

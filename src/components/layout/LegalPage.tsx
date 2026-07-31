@@ -2,10 +2,8 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 
 /**
- * One clause of a policy. `content` is the prose, `items` the enumerated points
- * beneath it (each optionally led by a bold subtitle), and `footer` a closing
- * qualification set in smaller italics, which is where caveats and statutory
- * carve-outs belong.
+ * One clause of a policy: prose, enumerated points beneath it, and a closing
+ * qualification in smaller italics, where caveats and statutory carve-outs go.
  */
 export interface LegalSection {
   title: string;
@@ -14,11 +12,7 @@ export interface LegalSection {
   footer?: string;
 }
 
-/**
- * Shared shell for the privacy, terms, and refund pages, so all three stay
- * visually identical and a change to the layout happens in one place. Each page
- * supplies only its own section data.
- */
+/** Shared shell for the privacy, terms, and refund pages, which supply only data. */
 export function LegalPage({
   title,
   lastUpdated,

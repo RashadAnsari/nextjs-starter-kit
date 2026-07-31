@@ -10,9 +10,8 @@ import { site } from "@/config/site";
 export const metadata = { title: "Checkout cancelled" };
 
 export default async function PaymentCancelPage() {
-  // The proxy already bounced anonymous visitors, but it only checks that a
-  // session cookie exists. This is the check that actually enforces access, and
-  // it is required of every protected page: see AGENTS.md.
+  // The proxy only checks that a session cookie exists, so this is the check
+  // that actually enforces access. Every protected page needs it.
   const user = await getSessionUser();
   if (!user) {
     redirect(withNext("/auth/login", "/payment/cancel"));

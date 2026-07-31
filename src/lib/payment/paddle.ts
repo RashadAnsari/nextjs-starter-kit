@@ -20,7 +20,6 @@ function planIdFromCustomData(customData: Record<string, string> | null): PlanId
   return isPlanId(customData?.planId) ? customData.planId : DEFAULT_PLAN_ID;
 }
 
-/** Fallback description when a Paddle transaction carries no price description. */
 const PLAN_DESCRIPTION = `${site.name} ${PLAN_LABEL}`;
 
 function getClient(): Paddle {

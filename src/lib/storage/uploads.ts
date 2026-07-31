@@ -3,7 +3,6 @@ import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand } from "@aws-sd
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { s3, UPLOADS_BUCKET } from "@/lib/storage/s3";
 
-/** How long a signed download link stays valid. */
 const SIGNED_URL_TTL_SECONDS = 300;
 
 /**
@@ -18,7 +17,6 @@ export function userUploadKey(userId: string, filename: string): string {
   return `${userId}/${safeName}`;
 }
 
-/** Stores an object and returns its key. */
 export async function putUpload({
   userId,
   filename,

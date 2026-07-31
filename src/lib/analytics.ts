@@ -11,7 +11,6 @@ function gaCommand(...args: (string | EventPayload)[]) {
   }
 }
 
-/** Sends a custom event to Google Analytics. */
 function track(event: string, data?: EventPayload) {
   gaCommand("event", event, data ?? {});
 }

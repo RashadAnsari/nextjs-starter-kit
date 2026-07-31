@@ -1,6 +1,5 @@
 import { runWrite, type DbClient } from "./client";
 
-/** A single append-only entry in the subscription history. */
 export interface SubscriptionEvent {
   user_id: string;
   event_type: string;

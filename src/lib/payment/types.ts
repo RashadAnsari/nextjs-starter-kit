@@ -6,7 +6,6 @@ export interface CheckoutParams {
   planId: PlanId;
   successUrl: string;
   cancelUrl: string;
-  /** Customer ID already on file at this provider, if any. */
   existingCustomerId?: string;
   /**
    * When true, use the price without a free trial. Set for returning customers
@@ -18,7 +17,7 @@ export interface CheckoutParams {
 export interface CheckoutResult {
   checkoutUrl: string;
   sessionId: string;
-  /** Customer ID created or used during checkout: persist in payment_customers. */
+  /** Persist in payment_customers, so a returning customer is not duplicated. */
   customerId: string;
 }
 
@@ -30,7 +29,7 @@ export interface WebhookEvent {
     | "subscription.expired"
     | "subscription.refunded"
     | "payment.failed";
-  /** Internal user ID, used by the webhook handler to upsert the subscriptions row. */
+  /** Our own user id, not the provider's. Empty for refunds, which carry none. */
   userId: string;
   providerCustomerId: string;
   providerSubscriptionId: string;

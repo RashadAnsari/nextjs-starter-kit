@@ -4,7 +4,6 @@ import { runWrite, type DbClient } from "./client";
 export class PaymentCustomerRepository {
   constructor(private readonly db: DbClient) {}
 
-  /** Every provider customer id on file for a user. */
   async listByUserId(userId: string): Promise<{ provider: string; customer_id: string }[]> {
     const { rows } = await this.db.query<{ provider: string; customer_id: string }>(
       `select provider, customer_id from payment_customers where user_id = $1`,
@@ -13,7 +12,6 @@ export class PaymentCustomerRepository {
     return rows;
   }
 
-  /** The customer id for a user at a specific provider, or null. */
   async findByUserAndProvider(
     userId: string,
     provider: string
@@ -25,7 +23,6 @@ export class PaymentCustomerRepository {
     return rows[0] ?? null;
   }
 
-  /** Persist a newly created provider customer id. */
   async create(row: { user_id: string; provider: string; customer_id: string }) {
     return runWrite(() =>
       this.db.query(

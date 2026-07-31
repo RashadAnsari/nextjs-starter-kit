@@ -31,12 +31,10 @@ export function safeNextPath(value: string | null | undefined): string | null {
   return `${url.pathname}${url.search}${url.hash}`;
 }
 
-/** The path to send a user to after signing in or verifying their email. */
 export function afterAuthPath(value: string | null | undefined): string {
   return safeNextPath(value) ?? DEFAULT_AFTER_AUTH;
 }
 
-/** Appends a `next` to an auth route, leaving it off when there is nothing to carry. */
 export function withNext(authPath: string, next: string | null | undefined): string {
   const safe = safeNextPath(next);
   return safe ? `${authPath}?next=${encodeURIComponent(safe)}` : authPath;

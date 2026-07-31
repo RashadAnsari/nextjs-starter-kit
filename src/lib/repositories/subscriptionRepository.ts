@@ -10,7 +10,6 @@ export interface SubscriptionRow {
   payment_provider: string | null;
 }
 
-/** A subscription record to upsert (the full current snapshot for a user). */
 export interface SubscriptionUpsert {
   user_id: string;
   plan_id: string;
@@ -63,7 +62,6 @@ const INSERT_SQL = `insert into subscriptions
 export class SubscriptionRepository {
   constructor(private readonly db: DbClient) {}
 
-  /** The user's current subscription row, or null if they never subscribed. */
   async findByUserId(userId: string): Promise<SubscriptionRow | null> {
     const { rows } = await this.db.query<SubscriptionRow>(
       `select ${COLUMNS} from subscriptions where user_id = $1`,
@@ -72,7 +70,7 @@ export class SubscriptionRepository {
     return rows[0] ?? null;
   }
 
-  /** Look up a subscription by its provider-side id (for webhook handling). */
+  /** How a webhook resolves the owner of an event that carries no user id. */
   async findByProviderSubscriptionId(providerSubscriptionId: string) {
     const { rows } = await this.db.query<{
       user_id: string;
@@ -86,7 +84,7 @@ export class SubscriptionRepository {
     return rows[0] ?? null;
   }
 
-  /** Create or replace the user's current subscription snapshot. */
+  /** Unconditional write, for manual grants. Webhooks use applyProviderEvent. */
   async upsert(row: SubscriptionUpsert) {
     return runWrite(() =>
       this.db.query(

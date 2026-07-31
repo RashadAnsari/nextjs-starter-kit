@@ -6,16 +6,14 @@ import { Button } from "@/components/ui/Button";
 import { site } from "@/config/site";
 
 /**
- * Where the pricing CTA sends the user after it claims complimentary access.
- * The dashboard reads the flag to show this modal, since by then the grant has
- * already happened and its own grant call reports nothing.
+ * Where the pricing CTA goes after claiming access. The flag is what tells the
+ * dashboard to show the modal, since the grant already happened by then.
  */
 export const WELCOME_GIFT_REDIRECT = "/dashboard?welcome=1";
 
 /**
- * Tells a user, once, that they were just given complimentary access: what they
- * got, that it costs nothing, and that it will not turn into a paid plan.
- * Dismissed client-side; the dashboard decides when to render it at all.
+ * Tells a user, once, what complimentary access gave them: how long, that it
+ * costs nothing, and that it will not turn into a paid plan.
  */
 export function WelcomeGiftModal({ months }: { months: number }) {
   const [open, setOpen] = useState(true);
@@ -32,7 +30,7 @@ export function WelcomeGiftModal({ months }: { months: number }) {
     }
 
     document.addEventListener("keydown", onKeyDown);
-    // Stop the page behind the overlay from scrolling while it is up.
+    // Stop the page behind the overlay from scrolling.
     document.body.style.overflow = "hidden";
 
     return () => {
@@ -74,8 +72,7 @@ export function WelcomeGiftModal({ months }: { months: number }) {
           free and with no payment method. It ends on its own and never turns into a paid plan.
         </p>
 
-        {/* Focused on open so the keyboard lands inside the dialog, not on the
-            page behind it. */}
+        {/* Focused on open so the keyboard lands inside the dialog. */}
         <Button autoFocus fullWidth onClick={() => setOpen(false)}>
           Get started
         </Button>

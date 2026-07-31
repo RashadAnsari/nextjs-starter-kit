@@ -40,7 +40,6 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ key });
 }
 
-/** A short-lived signed URL for one of the caller's own objects. */
 export async function GET(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) {

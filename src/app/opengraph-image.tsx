@@ -3,12 +3,9 @@ import { site } from "@/config/site";
 
 /**
  * The social preview card, generated at build time rather than shipped as a
- * binary. Next.js picks this file up by name and injects the og:image and
- * twitter:image tags itself, so there is nothing to wire up in layout.tsx.
- *
- * Because it reads from the site config, renaming the product rebrands the card
- * automatically. Replace this with a designed image when you have one: delete
- * the file and drop an `opengraph-image.png` in its place.
+ * binary, so renaming the product rebrands it. Next.js picks this file up by
+ * name and injects the og:image and twitter:image tags itself, which is why
+ * layout.tsx declares neither.
  */
 export const alt = site.name;
 export const size = { width: 1200, height: 630 };

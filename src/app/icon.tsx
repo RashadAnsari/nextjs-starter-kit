@@ -3,15 +3,9 @@ import { site } from "@/config/site";
 
 /**
  * Every raster icon the app needs, generated from the site config so they
- * rebrand along with everything else. Next.js picks this file up by name and
- * emits the <link rel="icon"> tags itself.
- *
- * The 192 and 512 sizes exist for the web manifest, which is what a browser
- * uses when someone installs the app to their home screen. src/app/manifest.ts
- * references them by the stable paths listed in ICONS below.
- *
- * Replace all of this with real artwork when you have it: delete the file and
- * drop an `icon.png` in its place, then point the manifest at your own assets.
+ * rebrand with everything else. Next.js picks this file up by name and emits
+ * the <link rel="icon"> tags itself. The 192 and 512 sizes exist because
+ * src/app/manifest.ts needs them for home-screen installs.
  */
 export const contentType = "image/png";
 
