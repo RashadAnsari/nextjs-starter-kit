@@ -19,19 +19,17 @@ A complete, self-hosted SaaS foundation: authentication, Postgres, transactional
 | --------------------------------------------- | --------------------------------------- |
 | ![Pricing page](docs/screenshots/pricing.png) | ![Sign up](docs/screenshots/signup.png) |
 
-Everything above is in the repository and runs on a fresh clone, before you write a line of code.
+Every screen above is in the repository and runs on a fresh clone.
 
 ## Why this one
 
-Most starter kits ask you to pick a side: pay a few hundred euros for a closed template, or accept a stack welded to one vendor's hosting, database, and auth.
+Most starter kits ask you to pick a side: pay a few hundred euros for a closed template, or accept a stack welded to one vendor's hosting, database, and auth. This one is neither.
 
-This one is neither.
-
-- **It is yours.** MIT, free, no licence key, no attribution. Fork it and never think about it again.
+- **It is yours.** MIT, free, no licence key, no attribution.
 - **No vendor lock-in.** Postgres over the plain `pg` driver, S3-compatible storage, any SMTP relay, and a billing interface with one provider implemented behind it. Every piece is swappable because nothing is welded to a platform SDK.
-- **It deploys to your own server.** A Docker build, GitHub Actions, and Ansible playbooks put the app and its database on a machine you control, with automated backups to object storage. No per-seat platform bill that grows with your success.
-- **You can read all of it.** Plain Next.js, plain SQL, and a thin repository layer. No generated code, no hidden framework, and few enough lines to review end to end in an afternoon.
-- **The security details are already right.** Webhook replay protection, redirect validation, per-user storage prefixes, a real CSP, and consent-gated analytics. These are the parts that are easy to get subtly wrong and expensive to discover late, so there is a [test suite](docs/TECHNICAL.md#testing) holding them in place.
+- **It deploys to your own server.** A Docker build, GitHub Actions, and Ansible playbooks put the app and its database on a machine you control, with automated backups to object storage.
+- **You can read all of it.** Plain Next.js, plain SQL, and a thin repository layer. No generated code and no hidden framework.
+- **The security details are already right.** Webhook replay protection, redirect validation, per-user storage prefixes, a real CSP, and consent-gated analytics, with a [test suite](docs/TECHNICAL.md#testing) holding them in place.
 
 ### Who it is for
 
@@ -103,5 +101,3 @@ Found a security issue? Please do not open a public issue. Use [private vulnerab
 ## License
 
 [MIT](LICENSE). Use it for anything, including commercial work, with no attribution required.
-
-If it saved you a weekend, a star costs nothing and helps other people find it.

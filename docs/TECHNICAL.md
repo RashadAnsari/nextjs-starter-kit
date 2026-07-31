@@ -72,9 +72,9 @@ Better Auth is mounted at `/api/auth`, backed by the same Postgres pool as the r
 
 `src/proxy.ts` handles route protection, but only optimistically: it checks that a session cookie is present, not that it is valid. Every protected page and route handler calls `getSessionUser()` itself, and that is what actually enforces access. Add new public routes to `PUBLIC_PATHS` there. Forgetting to is a fail-closed mistake, which is the safe direction.
 
-One consequence is worth knowing up front: an anonymous visitor to a URL that does not exist is redirected to the login page rather than shown the 404 page, because the proxy cannot tell an unknown route from a protected one. Signed-in visitors get the real 404. That is deliberate, since it also stops anyone from enumerating which routes exist, but if you would rather always show the 404, add a catch-all to `PUBLIC_PATHS`.
+One consequence: an anonymous visitor to a URL that does not exist is redirected to the login page rather than shown the 404 page, because the proxy cannot tell an unknown route from a protected one. Signed-in visitors get the real 404. That is deliberate, since it also stops anyone from enumerating which routes exist, but if you would rather always show the 404, add a catch-all to `PUBLIC_PATHS`.
 
-The guest-only pages, login and signup and the reset request, turn signed-in visitors away themselves by calling `redirectIfSignedIn()`. That belongs on the page rather than in the proxy for the same reason access control does: the proxy sees a cookie, not a session. Deciding it there means a cookie left behind by an expired session sends the visitor to a protected page, which sends them back to login, which sends them on again, and the two redirect at each other until the browser gives up. Validating where the answer is known makes that loop impossible to write.
+The guest-only pages, login and signup and the reset request, turn signed-in visitors away themselves by calling `redirectIfSignedIn()`. That belongs on the page rather than in the proxy for the same reason access control does: the proxy sees a cookie, not a session. Deciding it there means a cookie left behind by an expired session sends the visitor to a protected page, which sends them back to login, and the two redirect at each other until the browser gives up.
 
 `db/migrations/0001_auth.sql` is Better Auth's own generated schema. Do not hand-edit it. After changing the auth config or plugins, run the CLI against a running database and add what it reports as a new migration:
 
@@ -159,7 +159,7 @@ The exception is the `env` block in `next.config.ts`. Next.js substitutes those 
 
 ### Replacing the generated assets
 
-The icons, the social card, and the manifest are generated so that a fresh clone looks right before you have designed anything. Once you do, there are two ways to swap them in, and both are fully supported.
+The icons, the social card, and the manifest are generated so that a fresh clone looks right before you have designed anything. Once you do, there are two ways to swap them in.
 
 **Drop files into `src/app/`.** Next.js recognises them by filename and emits the `<head>` tags for you, exactly as the generated versions do. Delete the `.tsx` file first: a directory cannot hold both `icon.tsx` and `icon.png`.
 
@@ -198,15 +198,15 @@ Two things to know before choosing:
 - **Nothing in `public/` rebrands itself.** The generated versions read `site.name` and `site.brandColor`, so renaming the product updates them. Static files do not, and the manifest then duplicates the name and theme colour in a second place that can drift.
 - **`public/` needs no proxy change.** Its files carry extensions, which `src/proxy.ts` already excludes from route protection. The generated routes are extensionless (`/icon/192`, `/apple-icon`), which is why the matcher names them explicitly. If you move to `public/` you can drop those names from the matcher; if you add a new extensionless asset route, you must add it.
 
-Mixing the two is fine. A common split is a designed `opengraph-image.png` in `src/app/` alongside a generated favicon, or a full icon set in `public/` while the social card stays generated.
+Mixing the two is fine: a designed `opengraph-image.png` in `src/app/` alongside a generated favicon, for instance.
 
 ## Testing
 
 `make test` runs 97 tests in about a tenth of a second, with no database and no network. `make local` runs them alongside format, lint, and typecheck. CI calls the same targets on every push and pull request, so a green run locally is a green run there.
 
-No coverage percentage is written down anywhere, and none should be. `make coverage` prints the per-file table and writes `coverage/lcov.info`, which CI hands to Codecov, and the README badge reads the figure from there. `codecov.yml` sets the bar as `target: auto`: each commit is compared against its base rather than a number someone has to remember to update, so coverage can only hold or improve. It lands as the `codecov/project` and `codecov/patch` commit statuses, which block a merge only once they are required in the branch protection rules on `master`. The upload authenticates over OIDC, so there is no token to store, but a pull request from a fork is not granted the `id-token` permission and uploads nothing. To use this in your own fork, enable the repository at [codecov.io](https://codecov.io) and repoint the badge URL.
+No coverage percentage is written down anywhere, and none should be. `make coverage` prints the per-file table and writes `coverage/lcov.info`, which CI hands to Codecov, and the README badge reads the figure from there. `codecov.yml` sets the bar as `target: auto`, comparing each commit against its base rather than against a number someone has to remember to update. The upload authenticates over OIDC, so there is no token to store, but a pull request from a fork is not granted the `id-token` permission and uploads nothing. To use this in your own fork, enable the repository at [codecov.io](https://codecov.io) and repoint the badge URL.
 
-Read the figure for what it is. Bun instruments only the files the tests import, so it describes the payment, repository, redirect, and route-protection modules rather than the whole tree. Pages and React components are not counted, and not tested. Expect the terminal and the badge to disagree: Bun's `All files` row is the mean of the per-file percentages, where a five-line file weighs as much as a long one, while Codecov pools the totals. The pooled figure is the lower and more honest of the two.
+The figure covers less than the whole tree: Bun instruments only the files the tests import, so it describes the payment, repository, redirect, and route-protection modules. Pages and React components are neither counted nor tested. The terminal and the badge will disagree, because Bun averages the per-file percentages while Codecov pools the totals.
 
 That is deliberate. This is a template, so the tests cover what every app built on it inherits and would be expensive to get subtly wrong:
 
