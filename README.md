@@ -6,7 +6,7 @@ A complete, self-hosted SaaS foundation: authentication, Postgres, transactional
 
 [![Build](https://github.com/RashadAnsari/nextjs-starter-kit/actions/workflows/build.yml/badge.svg)](https://github.com/RashadAnsari/nextjs-starter-kit/actions/workflows/build.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](LICENSE)
-![Coverage](https://img.shields.io/badge/coverage-89%25-black)
+[![Coverage](https://img.shields.io/codecov/c/github/RashadAnsari/nextjs-starter-kit?branch=master&color=black&label=coverage)](https://codecov.io/gh/RashadAnsari/nextjs-starter-kit)
 ![Next.js 16](https://img.shields.io/badge/Next.js-16-black?logo=next.js&logoColor=white)
 ![React 19](https://img.shields.io/badge/React-19-black?logo=react)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-black?logo=typescript&logoColor=white)

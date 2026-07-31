@@ -10,6 +10,9 @@ jobs:
   check:
     name: Lint, typecheck, test, build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -31,6 +34,21 @@ jobs:
 
       - name: Test
         run: make test
+
+      # The same suite instrumented, kept separate so a plain test failure above
+      # is still reported as one.
+      - name: Coverage
+        run: make coverage
+
+      # A pull request from a fork is not granted `id-token` and so cannot
+      # upload, which is not a failure the contributor can fix.
+      - name: Publish coverage
+        uses: codecov/codecov-action@v7
+        with:
+          use_oidc: true
+          files: coverage/lcov.info
+          disable_search: true
+          fail_ci_if_error: ${{ github.event_name == 'push' }}
 
       - name: Build
         run: make build

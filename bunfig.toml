@@ -1,2 +1,7 @@
 [test]
 preload = ["./test/setup.ts"]
+
+coveragePathIgnorePatterns = ["test/**"]
+
+# lcov is the file CI uploads to Codecov. text is the table for the terminal.
+coverageReporter = ["text", "lcov"]

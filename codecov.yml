@@ -1,0 +1,18 @@
+# These arrive as the `codecov/project` and `codecov/patch` commit statuses. Add
+# them to the branch protection rules on master for them to block a merge rather
+# than only report.
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        # Rounding and a stray untested line should not fail a build.
+        threshold: 1%
+    patch:
+      default:
+        target: auto
+        threshold: 1%
+
+comment:
+  layout: "diff, files"
+  require_changes: true

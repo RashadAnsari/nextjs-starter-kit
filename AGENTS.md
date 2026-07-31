@@ -65,7 +65,9 @@ Before finishing, check whether the change invalidated any of them:
 - A new public page: `PUBLIC_PATHS` in `src/proxy.ts`, `src/app/sitemap.ts`, and `src/app/robots.ts`.
 - A changed `make` target: the `Commands` table in the technical guide, and the CI workflow if it runs there.
 - A change to how auth, payments, storage, or consent behaves: the matching section of the technical guide, since each one documents reasoning that a code comment cannot hold.
-- Tests added or removed: the counts and the coverage figure in the technical guide's `Testing` section, which `make coverage` prints.
+- Tests added or removed: the counts in the technical guide's `Testing` section.
+
+Never write a coverage percentage into the README, the docs, or the code: Codecov holds the measured figure and the badge reads it from there.
 
 If a statement in a doc is no longer true, fix it in the same change that made it untrue.
 
