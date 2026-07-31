@@ -49,6 +49,26 @@ This is Next.js 16, which has breaking changes: APIs, conventions, and file stru
 - **Desktop is the priority**: design for desktop first, and never degrade the desktop experience.
 - **Mobile must work**: verify every UI change at ≤640px, checking that nothing breaks, overflows, or becomes unusable.
 
+## Documentation
+
+Docs drift silently, so treat them as part of the change rather than a follow-up.
+
+- `README.md` is the marketing page: what this is, why it exists, and how to get it running. Keep it short. Technical prose does not go here.
+- `docs/TECHNICAL.md` is everything else: how each piece works and why, what to change when making it yours, testing, and deployment. New subsystems get a section.
+- `AGENTS.md` is this file: the rules a change has to follow. A new convention goes here, not in the technical guide.
+- `.env.example` is the reference for every environment variable. Adding one to the code means adding it here, with a comment when the value is not self-explanatory.
+
+Before finishing, check whether the change invalidated any of them:
+
+- A new or removed environment variable: `.env.example`, and `next.config.ts` plus the `Dockerfile` if it has to reach the browser.
+- A new page, route handler, or module: the technical guide's relevant section, and `Project layout` if it introduces a directory.
+- A new public page: `PUBLIC_PATHS` in `src/proxy.ts`, `src/app/sitemap.ts`, and `src/app/robots.ts`.
+- A changed `make` target: the `Commands` table in the technical guide, and the CI workflow if it runs there.
+- A change to how auth, payments, storage, or consent behaves: the matching section of the technical guide, since each one documents reasoning that a code comment cannot hold.
+- Tests added or removed: the counts and the coverage figure in the technical guide's `Testing` section, which `make coverage` prints.
+
+If a statement in a doc is no longer true, fix it in the same change that made it untrue.
+
 ## Verification
 
 - After every change, run `make local` (format, lint, typecheck, tests) and fix anything it reports before considering the work done.

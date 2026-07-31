@@ -27,6 +27,8 @@ All five must pass. CI runs the same targets, so a green run here is a green run
 
 Read `AGENTS.md` first. It carries the conventions this codebase actually follows: where SQL lives, how forms report errors, why some modules are server-only, and what must never be trusted from a request. A change that ignores those will get review comments about them.
 
+[docs/TECHNICAL.md](docs/TECHNICAL.md) is the companion: how each piece works and why it works that way.
+
 ## Commit messages
 
 A single imperative sentence, no type prefix:
