@@ -10,6 +10,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/Button";
 import { site } from "@/config/site";
+import { SignupCta } from "./SignupCta";
 
 const FEATURES = [
   {
@@ -65,9 +66,9 @@ export default function HomePage() {
             {site.description}
           </p>
           <div className="mt-10 flex flex-col justify-center gap-3 sm:flex-row">
-            <Button href="/auth/signup" size="lg">
+            <SignupCta size="lg" signedInLabel="Go to dashboard">
               Get started
-            </Button>
+            </SignupCta>
             <Button href="/pricing" variant="outline" size="lg">
               See pricing
             </Button>
@@ -109,9 +110,9 @@ export default function HomePage() {
               yours.
             </p>
             <div className="mt-8 flex justify-center">
-              <Button href="/auth/signup" variant="white" size="lg">
+              <SignupCta variant="white" size="lg" signedInLabel="Go to dashboard">
                 Create your account
-              </Button>
+              </SignupCta>
             </div>
           </div>
         </section>

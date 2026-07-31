@@ -60,7 +60,7 @@ describe("proxy, signed out", () => {
   });
 });
 
-describe("proxy, signed in", () => {
+describe("proxy, cookie present", () => {
   beforeEach(() => {
     signedIn = true;
   });
@@ -69,20 +69,17 @@ describe("proxy, signed in", () => {
     expect((await visit("/dashboard")).headers.get("location")).toBeNull();
   });
 
-  test("sends a guest-only page to the default landing page", async () => {
-    expect(await locationOf("/auth/login")).toBe("/dashboard");
+  test("leaves guest-only pages alone, so a dead cookie cannot cause a loop", async () => {
+    // The cookie proves nothing: it may belong to an expired session. Bouncing
+    // login to the dashboard here would have the dashboard bounce back to
+    // login, forever. redirectIfSignedIn() makes that call on the page, where
+    // the session has actually been validated.
+    for (const path of ["/auth/login", "/auth/signup", "/auth/forgot-password"]) {
+      expect((await visit(path)).headers.get("location")).toBeNull();
+    }
   });
 
-  test("honours a safe next on a guest-only page", async () => {
-    expect(await locationOf("/auth/login?next=%2Fsettings")).toBe("/settings");
-  });
-
-  test("ignores a next that points back at another guest-only page", async () => {
-    // Honouring it would bounce the user between two guest-only pages.
-    expect(await locationOf("/auth/login?next=%2Fauth%2Fsignup")).toBe("/dashboard");
-  });
-
-  test("ignores an off-site next", async () => {
-    expect(await locationOf("/auth/login?next=https%3A%2F%2Fevil.example")).toBe("/dashboard");
+  test("leaves a guest-only page carrying a next alone", async () => {
+    expect((await visit("/auth/login?next=%2Fsettings")).headers.get("location")).toBeNull();
   });
 });

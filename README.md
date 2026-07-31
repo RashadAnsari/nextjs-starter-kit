@@ -56,7 +56,7 @@ Someone starting a subscription product who wants to own their infrastructure, a
 | **Analytics** | Google Analytics 4 that loads only after consent, plus a GDPR-compliant consent banner                           |
 | **Security**  | CSP and security headers, safe post-auth redirects, webhook idempotency                                          |
 | **Pages**     | Landing, pricing, dashboard, settings, auth flows, 404, and privacy/terms/refund policies                        |
-| **Tests**     | 92 tests over the money and access paths, run by `make test` and in CI                                           |
+| **Tests**     | 97 tests over the money and access paths, run by `make test` and in CI                                           |
 | **Ops**       | Docker build, GitHub Actions, Ansible playbooks, automated database backups to object storage                    |
 
 ## Quick start
@@ -132,6 +132,8 @@ Better Auth is mounted at `/api/auth`, backed by the same Postgres pool as the r
 `src/proxy.ts` handles route protection, but only optimistically: it checks that a session cookie is present, not that it is valid. Every protected page and route handler calls `getSessionUser()` itself, and that is what actually enforces access. Add new public routes to `PUBLIC_PATHS` there. Forgetting to is a fail-closed mistake, which is the safe direction.
 
 One consequence is worth knowing up front: an anonymous visitor to a URL that does not exist is redirected to the login page rather than shown the 404 page, because the proxy cannot tell an unknown route from a protected one. Signed-in visitors get the real 404. That is deliberate, since it also stops anyone from enumerating which routes exist, but if you would rather always show the 404, add a catch-all to `PUBLIC_PATHS`.
+
+The guest-only pages, login and signup and the reset request, turn signed-in visitors away themselves by calling `redirectIfSignedIn()`. That belongs on the page rather than in the proxy for the same reason access control does: the proxy sees a cookie, not a session. Deciding it there means a cookie left behind by an expired session sends the visitor to a protected page, which sends them back to login, which sends them on again, and the two redirect at each other until the browser gives up. Validating where the answer is known makes that loop impossible to write.
 
 `db/migrations/0001_auth.sql` is Better Auth's own generated schema. Do not hand-edit it. After changing the auth config or plugins, run the CLI against a running database and add what it reports as a new migration:
 
@@ -235,22 +237,22 @@ Mixing the two is fine. A common split is a designed `opengraph-image.png` in `s
 
 ## Testing
 
-`make test` runs 92 tests in about a tenth of a second, with no database and no network. `make local` runs them alongside format, lint, and typecheck. CI calls the same targets on every push and pull request, so a green run locally is a green run there.
+`make test` runs 97 tests in about a tenth of a second, with no database and no network. `make local` runs them alongside format, lint, and typecheck. CI calls the same targets on every push and pull request, so a green run locally is a green run there.
 
 The suite covers **89% of lines and 91% of functions** in the modules it exercises. `make coverage` prints the table. Read that number for what it is: Bun measures only files the tests import, so it describes the payment, repository, redirect, and route-protection modules rather than the whole tree. Pages and React components are not counted, and not tested.
 
 That is deliberate. This is a template, so the tests cover what every app built on it inherits and would be expensive to get subtly wrong:
 
-| Area             | What is pinned                                                                                                       |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------- |
-| Route protection | An unlisted path redirects to login rather than falling through; guest-only pages ignore a hostile or looping `next` |
-| Redirects        | `safeNextPath` rejects absolute, protocol-relative, backslash, and non-http targets                                  |
-| Access rules     | `hasPremiumAccess` across manual grants, the renewal window, and every provider status                               |
-| Checkout         | A returning customer cannot claim a second trial, and a user with access cannot buy twice                            |
-| Cancellation     | A trial ends now, a paid plan runs to the period end, and a provider failure leaves the row alone                    |
-| Webhooks         | Replays are deduplicated, stale events are skipped, and every write failure releases the claim so the retry lands    |
-| SQL safety       | The column allowlist on `updateByUserId`, the one query not built purely from bound parameters                       |
-| Storage keys     | Object keys are namespaced by user id and a crafted filename cannot climb out of the prefix                          |
+| Area             | What is pinned                                                                                                           |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Route protection | An unlisted path redirects to login rather than falling through, and a stale session cookie cannot start a redirect loop |
+| Redirects        | `safeNextPath` rejects absolute, protocol-relative, backslash, and non-http targets                                      |
+| Access rules     | `hasPremiumAccess` across manual grants, the renewal window, and every provider status                                   |
+| Checkout         | A returning customer cannot claim a second trial, and a user with access cannot buy twice                                |
+| Cancellation     | A trial ends now, a paid plan runs to the period end, and a provider failure leaves the row alone                        |
+| Webhooks         | Replays are deduplicated, stale events are skipped, and every write failure releases the claim so the retry lands        |
+| SQL safety       | The column allowlist on `updateByUserId`, the one query not built purely from bound parameters                           |
+| Storage keys     | Object keys are namespaced by user id and a crafted filename cannot climb out of the prefix                              |
 
 What is not covered is as deliberate. Provider signature verification in `paddle.ts` is stubbed, because proving it needs a genuine signed fixture from a provider you may well replace. The upload route is a worked example, so only its key-building helper is tested, not its size and content-type limits. Anything that depends on real SQL semantics, such as the conditional upsert and the idempotency claim insert, has to be proven against a live database instead.
 

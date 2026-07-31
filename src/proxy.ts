@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getSessionCookie } from "better-auth/cookies";
-import { DEFAULT_AFTER_AUTH, safeNextPath } from "@/lib/redirects";
 
 // Everything not listed here requires a session. Add new public pages to this
 // list; forgetting to is a fail-closed mistake, not a fail-open one.
@@ -16,14 +15,8 @@ const PUBLIC_PATHS = [
   "/auth/forgot-password",
 ];
 
-const GUEST_ONLY_PATHS = ["/auth/login", "/auth/signup", "/auth/forgot-password"];
-
 function isPublic(pathname: string) {
   return PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(path + "/"));
-}
-
-function isGuestOnly(pathname: string) {
-  return GUEST_ONLY_PATHS.some((path) => pathname === path || pathname.startsWith(path + "/"));
 }
 
 /**
@@ -31,27 +24,25 @@ function isGuestOnly(pathname: string) {
  * present, it does not validate it. Every protected page and route handler
  * independently calls getSessionUser(), which is what actually enforces access.
  *
+ * It deliberately does nothing about guest-only pages. Turning a signed-in
+ * visitor away from login or signup needs to know whether the session is real,
+ * and this file cannot: a cookie left behind by an expired session would send
+ * the visitor to a protected page, which would send them back to login, which
+ * would send them on again, with no way out but clearing cookies by hand. The
+ * guest-only pages call redirectIfSignedIn() instead, where the session has
+ * actually been validated.
+ *
  * In Next.js 16 this file replaces middleware.ts and the exported function is
  * named `proxy` rather than `middleware`.
  */
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const hasSession = !!getSessionCookie(request);
-
-  if (hasSession && isGuestOnly(pathname)) {
-    // Honour the `next` the user was carrying, unless it points back at another
-    // guest-only page, which would bounce them straight back here.
-    const requested = safeNextPath(request.nextUrl.searchParams.get("next"));
-    const requestedPath = requested?.split(/[?#]/)[0] ?? "";
-    const target = requested && !isGuestOnly(requestedPath) ? requested : DEFAULT_AFTER_AUTH;
-    return NextResponse.redirect(new URL(target, request.url));
-  }
 
   if (isPublic(pathname)) {
     return NextResponse.next();
   }
 
-  if (!hasSession) {
+  if (!getSessionCookie(request)) {
     // Build the URL fresh rather than cloning: cloning would carry the
     // protected page's own query string onto /auth/login alongside `next`.
     const loginUrl = new URL("/auth/login", request.url);

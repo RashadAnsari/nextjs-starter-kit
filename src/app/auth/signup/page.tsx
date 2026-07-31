@@ -1,3 +1,4 @@
+import { redirectIfSignedIn } from "@/lib/auth-session";
 import { SignupClient } from "./SignupClient";
 
 /**
@@ -7,5 +8,6 @@ import { SignupClient } from "./SignupClient";
  */
 export default async function SignupPage(props: { searchParams: Promise<{ next?: string }> }) {
   const { next } = await props.searchParams;
+  await redirectIfSignedIn(next);
   return <SignupClient next={next ?? null} />;
 }

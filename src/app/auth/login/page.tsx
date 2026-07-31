@@ -1,3 +1,4 @@
+import { redirectIfSignedIn } from "@/lib/auth-session";
 import { LoginClient } from "./LoginClient";
 
 /**
@@ -6,5 +7,6 @@ import { LoginClient } from "./LoginClient";
  */
 export default async function LoginPage(props: { searchParams: Promise<{ next?: string }> }) {
   const { next } = await props.searchParams;
+  await redirectIfSignedIn(next);
   return <LoginClient next={next ?? null} />;
 }

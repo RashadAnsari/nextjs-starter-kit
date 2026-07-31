@@ -130,7 +130,10 @@ export function SubscriptionSection() {
                       : "bg-[var(--gray-100)] text-[var(--gray-600)]"
                   }`}
                 >
-                  {isSubscribed ? PLAN_LABEL : "No plan"}
+                  {/* Keyed on access, not on planId: a cancelled trial keeps
+                      its row, so planId would still name the plan after the
+                      access it granted has ended. */}
+                  {hasAccess ? PLAN_LABEL : "No plan"}
                 </span>
               </div>
             }

@@ -39,8 +39,11 @@ export default async function DashboardPage() {
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           <div className="card">
             <p className="text-sm font-medium text-[var(--gray-500)]">Plan</p>
+            {/* Keyed on access, not on planId: a cancelled trial keeps its
+                row, so planId would still name the plan after the access it
+                granted has ended. */}
             <p className="mt-1 text-2xl font-bold text-[var(--gray-900)]">
-              {subscription.planId ? PLAN_LABEL : "None"}
+              {hasAccess ? PLAN_LABEL : "None"}
             </p>
             <p className="mt-2 text-sm text-[var(--gray-600)]">
               {hasAccess ? "Your subscription is active." : "You have no active subscription."}
