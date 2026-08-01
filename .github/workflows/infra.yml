@@ -2,8 +2,9 @@ name: Infra
 
 # Manual only. The infra stack has its own lifecycle: deploying the app does not
 # touch it, and running this does not restart the app. Run it once before the
-# first app deploy (it creates app_network, which the app stack joins), and
-# afterwards only to change the Postgres image or its settings.
+# first app deploy (it installs Docker and creates app_network, which the app
+# stack joins), and afterwards only to change the Postgres image or its
+# settings.
 on:
   workflow_dispatch:
 
@@ -20,6 +21,7 @@ jobs:
         with:
           directory: deploy
           playbook: infra.yaml
+          requirements: requirements.yml
           configuration: |
             [defaults]
             inventory = inventory.yaml

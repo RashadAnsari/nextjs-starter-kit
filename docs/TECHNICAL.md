@@ -236,6 +236,8 @@ The app and the infrastructure it depends on are two independent compose stacks 
 
 The infra stack holds the stateful services (Postgres and its backup sidecar) and owns the `app_network` Docker network. The app stack joins that network as an external network and reaches Postgres by hostname, so the database port is never published. Run the Infra workflow once before the first app deploy; `deploy/app.yaml` fails early with a clear error if the network is missing.
 
+`deploy/infra.yaml` provisions the host as well as the stack: it applies the [`geerlingguy.docker`](https://github.com/geerlingguy/ansible-role-docker) role before its own tasks, so a server that has nothing but SSH ends up with Docker Engine and the compose plugin. The role is pinned in `deploy/requirements.yml`, which the Infra workflow installs with `ansible-galaxy` before the playbook runs. Bump the version there to take a newer release.
+
 Migrations run from `deploy/app.yaml` after the app container starts, since the schema belongs to the app version being deployed rather than to the infra stack.
 
 CI already builds the production image on every push and pull request, so a change that breaks the `Dockerfile` fails there rather than at deploy time. It stops at building: nothing is published or shipped anywhere. To enable deployment on top of that, point the inventory in both workflows at your server, add the secrets they reference, and uncomment the `deploy` job in `.github/workflows/build.yml`.

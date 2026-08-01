@@ -1,6 +1,11 @@
 - name: Deploy infra stack
   become: true
   hosts: all
+  # Roles run before tasks, so a bare server gets Docker and the compose plugin
+  # before anything below shells out to them. Installing it here rather than in
+  # the app playbook keeps the host setup with the stack that is deployed once.
+  roles:
+    - geerlingguy.docker
   tasks:
     - name: Create configuration directory
       file:

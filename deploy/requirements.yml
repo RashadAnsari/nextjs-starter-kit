@@ -1,0 +1,6 @@
+# Galaxy roles the playbooks need. The Infra workflow installs these before
+# running deploy/infra.yaml. Pinned so an upstream release cannot change how a
+# server is provisioned between two runs of the same commit.
+roles:
+  - name: geerlingguy.docker
+    version: 8.0.0
