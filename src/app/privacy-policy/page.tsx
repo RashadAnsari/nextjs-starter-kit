@@ -125,6 +125,10 @@ const SECTIONS: LegalSection[] = [
         subtitle: "Content you submit",
         text: "Deleted with your account, subject to backups being rotated out.",
       },
+      {
+        subtitle: "Deleted email addresses",
+        text: "When an account is deleted we keep an irreversible cryptographic fingerprint of the email address, and nothing else, so that the address cannot be used to open a new account. The address itself is not retained and the fingerprint cannot be turned back into it. We keep this to prevent repeated use of free trials, which is our legitimate interest under Article 6(1)(f).",
+      },
     ],
     footer:
       "When you delete your account we remove your personal data except where we are legally required to retain it. Backups are rotated on a fixed schedule, so a deleted record may persist in a backup until that rotation completes.",

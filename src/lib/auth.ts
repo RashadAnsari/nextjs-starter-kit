@@ -5,6 +5,8 @@ import { nextCookies } from "better-auth/next-js";
 import { pool } from "@/lib/db";
 import { sendEmail } from "@/lib/email/mailer";
 import { confirmSignupEmail, resetPasswordEmail } from "@/lib/email/templates";
+import { DeletedAccountRepository } from "@/lib/repositories/deletedAccountRepository";
+import { site } from "@/config/site";
 
 /**
  * Endpoints worth an audit log line. Sign-in and the password flows are how
@@ -21,6 +23,30 @@ const AUDITED_PATHS: Record<string, string> = {
 
 export const auth = betterAuth({
   database: pool,
+  databaseHooks: {
+    user: {
+      create: {
+        /**
+         * An erased account does not get a clean slate. Without this, signing up
+         * again with the same address hands back the free trial and any
+         * complimentary access, and the payment provider still holds an archived
+         * customer on that address, so the next checkout would fail anyway.
+         *
+         * Throwing rather than returning false: false aborts the insert silently
+         * and the form shows an unexplained failure, while an APIError reaches it
+         * as a message the person can act on. The wording does not say an account
+         * once existed here, since anyone can type an address into the form.
+         */
+        before: async (user) => {
+          if (await new DeletedAccountRepository(pool).isDeleted(user.email)) {
+            throw new APIError("FORBIDDEN", {
+              message: `This email address cannot be used to create an account. Contact ${site.supportEmail} if you need help.`,
+            });
+          }
+        },
+      },
+    },
+  },
   hooks: {
     // Runs after every auth endpoint, including ones that failed: a thrown
     // APIError lands in ctx.context.returned instead of unwinding the hook.

@@ -78,4 +78,10 @@ export interface PaymentProvider {
     immediately?: boolean
   ): Promise<void>;
   getPaymentHistory(providerCustomerId: string): Promise<ProviderPayment[]>;
+  /**
+   * Retire a customer record at the provider, used when erasing an account.
+   * Providers keep paid transactions for tax reporting, so this is as far as
+   * deletion goes on their side.
+   */
+  archiveCustomer(providerCustomerId: string): Promise<void>;
 }

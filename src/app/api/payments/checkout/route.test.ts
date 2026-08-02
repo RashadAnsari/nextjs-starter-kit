@@ -34,6 +34,7 @@ const fakeProvider: PaymentProvider = {
   parseWebhook: () => Promise.resolve(null),
   cancelSubscription: () => Promise.resolve(),
   getPaymentHistory: () => Promise.resolve([]),
+  archiveCustomer: () => Promise.resolve(),
 };
 
 mock.module("@/lib/db", () => ({ pool }));

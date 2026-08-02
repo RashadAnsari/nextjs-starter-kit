@@ -296,6 +296,12 @@ export class PaddleProvider implements PaymentProvider {
     });
   }
 
+  async archiveCustomer(providerCustomerId: string): Promise<void> {
+    // Paddle has no customer delete: archiving is the documented equivalent,
+    // and it keeps the customer out of future checkouts and customer lists.
+    await this.client.customers.archive(providerCustomerId);
+  }
+
   async getPaymentHistory(providerCustomerId: string): Promise<ProviderPayment[]> {
     const refundedTransactionIds = new Set<string>();
     for await (const adj of this.client.adjustments.list({

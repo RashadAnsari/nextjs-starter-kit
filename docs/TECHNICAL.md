@@ -16,6 +16,7 @@ piece works and why it works that way, and how to test and deploy it. The
   - [SEO](#seo)
   - [Payments](#payments)
   - [Object storage](#object-storage)
+  - [Account deletion](#account-deletion)
   - [Analytics and consent](#analytics-and-consent)
   - [Environment variables, and when they are read](#environment-variables-and-when-they-are-read)
   - [Security headers](#security-headers)
@@ -32,7 +33,7 @@ piece works and why it works that way, and how to test and deploy it. The
 2. **Colours.** Edit the `--brand-*` tokens in `src/app/globals.css`, and keep `site.brandColor` in sync (email clients cannot read CSS variables, so the templates need the literal value).
 3. **Icons and social card.** There is no `public/` directory and no image assets to swap out. Everything is generated from the site config: `src/app/icon.tsx` produces the favicon plus the 192 and 512 sizes the web manifest needs, `src/app/apple-icon.tsx` the iOS home-screen icon, `src/app/opengraph-image.tsx` the social preview card, and `src/app/manifest.ts` the web manifest itself. All of them rebrand automatically. See [Replacing the generated assets](#replacing-the-generated-assets) when you have real artwork.
 4. **Plan.** Edit `PLAN` in `src/components/pricing/PricingCards.tsx` and the plan ids in `src/lib/payment/plans.ts`.
-5. **Legal pages.** The privacy, terms, and refund pages are a starting point, not legal advice. Review them with a lawyer before taking real customers. Note that there is no self-serve account deletion: the terms say to ask, so erasure requests are handled by hand until you build a flow for them, and `subscription_events` is deliberately kept when a user goes, since it is the financial record a payment dispute needs.
+5. **Legal pages.** The privacy, terms, and refund pages are a starting point, not legal advice. Review them with a lawyer before taking real customers. Note that there is no self-serve account deletion: the terms say to ask, and an erasure request is carried out by an operator running `bun run delete-user`, described under [Account deletion](#account-deletion). Section 7 of the privacy policy has to match what that script actually keeps.
 6. **Delete what you don't need.** The upload route (`src/app/api/uploads/`) and the whole `payment` module are self-contained: removing either one breaks nothing else.
 7. **Package name.** Change `name` in `package.json`, the image name in `Dockerfile` and `deploy/`, and the database name in `docker-compose.yml`.
 
@@ -141,6 +142,33 @@ Any S3-compatible provider. Objects are keyed by user id, and the key is always 
 
 Object storage enforces no size or content-type limit of its own, so `src/app/api/uploads/route.ts` is the only place either is checked. Keep those checks if you adapt it.
 
+### Account deletion
+
+`bun run delete-user <email|userId>` erases a person on request, which is what Article 17 of the GDPR obliges you to do. There is no self-service button: the script is the whole flow, run by an operator against the address in the request.
+
+Run it through `bun run` rather than as a file. The package.json script adds a `--preload` that replaces the `server-only` package with an empty module, without which importing the payment provider or the S3 client aborts the script: that package throws by design outside a React Server Components build. The exception lives in `scripts/allow-server-only.ts` and applies to that one command, so the modules keep the guard that stops them being pulled into a browser bundle. Any admin script that reaches into the app the same way needs the same flag.
+
+Four stores hold user data and only one of them cascades:
+
+| Store             | How it is cleared                                                                              |
+| ----------------- | ---------------------------------------------------------------------------------------------- |
+| Application rows  | Deleting the `"user"` row cascades to sessions, accounts, payment customers, and subscriptions |
+| Verification rows | Deleted by hand: the table has no `user_id` column and so sits outside the cascade             |
+| Object storage    | Deleted by user-id prefix, since storage takes no part in a database cascade                   |
+| Payment provider  | The live subscription is cancelled and the customer archived                                   |
+
+The order matters. The provider goes first, so a subscription can never keep billing an account that no longer exists, and a failure there stops the run before any data is touched. Storage goes next, because its keys are reachable only through the user id. The database goes last, in one transaction. Every step is safe to repeat.
+
+Two things deliberately survive. `subscription_events` is the append-only financial history and its foreign key is `restrict`, not `cascade`, so the script refuses to erase a user who has any until you pass `--purge-billing-history`: a payment dispute can be raised after the account is gone. And the payment provider keeps paid transactions and invoices, because as a merchant of record it holds them as financial records; archiving the customer is as far as deletion goes on their side.
+
+The address itself is recorded in `deleted_accounts`, in the same transaction, and sign-up refuses it afterwards through a `databaseHooks.user.create.before` hook in `src/lib/auth.ts`. Without that, deleting an account is a way to claim the free trial again, and the archived customer at the provider still holds the address, so the returning user's checkout would fail anyway. What is stored is an HMAC-SHA256 keyed with `BETTER_AUTH_SECRET`, never the address: a plain digest would be pointless because the space of email addresses is small enough to enumerate. Rotating that secret orphans every row and silently lifts the blocks, and the list cannot be rebuilt, since the addresses are gone.
+
+Addresses are normalised before hashing, provider by provider, using `normalizeEmail` from `validator`, so the block cannot be stepped around with `user+tag@` or a dot in a Gmail address. It is not a general rule: a dot is meaningless only at Gmail, and `+` is a legal local-part character, so at a domain with no stated subaddress rule two spellings are two different people. The library's Yahoo rule is turned off for the same reason: it splits on `-` and drops the last component, which would collapse `jan-willem@yahoo.com` onto `jan@yahoo.com`. The normalised value feeds the digest only, never the stored `user.email`, so people still sign in and receive mail at what they typed.
+
+Blocking the address is the opinionated part, and it is yours to keep or drop. It is the strict end of the range: it stops the trial being reclaimed, but it also turns away a former customer who wants to come back, and someone determined to have a second trial signs up with a different address anyway. The softer version is to let them sign up and deny only the free part, by having `isTrialEligible` and `grantComplimentaryAccess` consult `deleted_accounts` instead of the sign-up hook doing it. Either way keep the table, because the row is also the record that an erasure request was carried out, which is what accountability under Article 5(2) asks for.
+
+Section 7 of the privacy policy has to describe this, since a fingerprint outlives the account it came from. If you drop the block, delete that entry with it: a policy that describes data you no longer keep is as wrong as one that omits data you do.
+
 ### Analytics and consent
 
 Google Analytics loads only after the visitor accepts. Before that, no script and no cookie exist at all, which is what keeps it compliant under GDPR and ePrivacy. The choice is stored in `localStorage`, not a cookie, so nothing is written before consent is given. Leave `ANALYTICS_GA_MEASUREMENT_ID` empty and both the tracking and the banner disappear.
@@ -202,7 +230,7 @@ Mixing the two is fine: a designed `opengraph-image.png` in `src/app/` alongside
 
 ## Testing
 
-`make test` runs 97 tests in about a tenth of a second, with no database and no network. `make local` runs them alongside format, lint, and typecheck. CI calls the same targets on every push and pull request, so a green run locally is a green run there.
+`make test` runs 110 tests in about a tenth of a second, with no database and no network. `make local` runs them alongside format, lint, and typecheck. CI calls the same targets on every push and pull request, so a green run locally is a green run there.
 
 No coverage percentage is written down anywhere, and none should be. `make coverage` prints the per-file table and writes `coverage/lcov.info`, which CI hands to Codecov, and the README badge reads the figure from there. `codecov.yml` sets the bar as `target: auto`, comparing each commit against its base rather than against a number someone has to remember to update. The upload authenticates over OIDC, so there is no token to store, but a pull request from a fork is not granted the `id-token` permission and uploads nothing. To use this in your own fork, enable the repository at [codecov.io](https://codecov.io) and repoint the badge URL.
 
@@ -210,16 +238,17 @@ The figure covers less than the whole tree: Bun instruments only the files the t
 
 That is deliberate. This is a template, so the tests cover what every app built on it inherits and would be expensive to get subtly wrong:
 
-| Area             | What is pinned                                                                                                           |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Route protection | An unlisted path redirects to login rather than falling through, and a stale session cookie cannot start a redirect loop |
-| Redirects        | `safeNextPath` rejects absolute, protocol-relative, backslash, and non-http targets                                      |
-| Access rules     | `hasPremiumAccess` across manual grants, the renewal window, and every provider status                                   |
-| Checkout         | A returning customer cannot claim a second trial, and a user with access cannot buy twice                                |
-| Cancellation     | A trial ends now, a paid plan runs to the period end, and a provider failure leaves the row alone                        |
-| Webhooks         | Replays are deduplicated, stale events are skipped, and every write failure releases the claim so the retry lands        |
-| SQL safety       | The column allowlist on `updateByUserId`, the one query not built purely from bound parameters                           |
-| Storage keys     | Object keys are namespaced by user id and a crafted filename cannot climb out of the prefix                              |
+| Area             | What is pinned                                                                                                                                                          |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Route protection | An unlisted path redirects to login rather than falling through, and a stale session cookie cannot start a redirect loop                                                |
+| Redirects        | `safeNextPath` rejects absolute, protocol-relative, backslash, and non-http targets                                                                                     |
+| Access rules     | `hasPremiumAccess` across manual grants, the renewal window, and every provider status                                                                                  |
+| Checkout         | A returning customer cannot claim a second trial, and a user with access cannot buy twice                                                                               |
+| Cancellation     | A trial ends now, a paid plan runs to the period end, and a provider failure leaves the row alone                                                                       |
+| Webhooks         | Replays are deduplicated, stale events are skipped, and every write failure releases the claim so the retry lands                                                       |
+| SQL safety       | The column allowlist on `updateByUserId`, the one query not built purely from bound parameters                                                                          |
+| Storage keys     | Object keys are namespaced by user id and a crafted filename cannot climb out of the prefix                                                                             |
+| Deleted accounts | The address never reaches the database, a missing signing secret throws rather than falling back, and normalisation collapses only the spellings that reach one mailbox |
 
 What is not covered is as deliberate. Provider signature verification in `paddle.ts` is stubbed, because proving it needs a genuine signed fixture from a provider you may well replace. The upload route is a worked example, so only its key-building helper is tested, not its size and content-type limits. Anything that depends on real SQL semantics, such as the conditional upsert and the idempotency claim insert, has to be proven against a live database instead.
 
@@ -278,6 +307,8 @@ Stop the app stack first so nothing writes during the restore. Rehearse this at 
 | `make build`    | Production build                                       |
 
 `bun scripts/grant-subscription.ts <userId> [months]` grants access manually, with no payment provider behind it. Useful for team accounts and support gestures.
+
+`bun run delete-user <email|userId>` erases an account and everything attached to it. See [Account deletion](#account-deletion) for what it touches and what deliberately survives.
 
 ## Notes on versions
 

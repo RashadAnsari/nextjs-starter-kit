@@ -31,6 +31,7 @@ const fakeProvider: PaymentProvider = {
     return Promise.resolve();
   },
   getPaymentHistory: () => Promise.resolve([]),
+  archiveCustomer: () => Promise.resolve(),
 };
 
 mock.module("@/lib/db", () => ({ pool: stubPool }));

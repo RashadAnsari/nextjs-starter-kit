@@ -28,6 +28,7 @@ const fakeProvider: PaymentProvider = {
     return cancelResult ? Promise.reject(cancelResult) : Promise.resolve();
   },
   getPaymentHistory: () => Promise.resolve([]),
+  archiveCustomer: () => Promise.resolve(),
 };
 
 mock.module("@/lib/db", () => ({ pool }));
